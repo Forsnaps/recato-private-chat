@@ -1,0 +1,7 @@
+body { margin: 0; width: 320px; padding: 16px; background: #030907; color: #dfe9e5; font: 14px/1.45 system-ui, sans-serif; }
+h1 { font-size: 15px; margin: 0 0 10px; }
+p { margin: 0 0 10px; }
+.estado { font-weight: 600; }
+.estado.conferida { color: #5fb3a1; }
+.estado.por-conferir { color: #e8b04b; }
+a { color: #5fb3a1; }

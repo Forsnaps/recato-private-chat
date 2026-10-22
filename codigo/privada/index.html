@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; connect-src 'self' https://*.recato.ai https://recato.ai https://cdn.confidential.cloud; img-src 'self' data:">
+<title>Conversa privada</title>
+<link rel="stylesheet" href="estilo.css" integrity="{{SRI_ESTILO}}">
+</head>
+<body>
+<div class="app">
+  <header class="topo">
+    <div class="linha-topo">
+      <div class="titulo" data-texto="titulo">Conversa privada</div>
+      <button type="button" class="botao pequeno secundario" id="ver-conversas" data-texto="conversas" hidden>Conversas</button>
+    </div>
+    <div class="estado" id="estado" data-texto="a_verificar">A verificar a caixa-forte…</div>
+    <div class="faixa" id="faixa" hidden><span data-texto="faixa_web">Esta página vem do servidor do Recato: sem a extensão (ou a app) não consegues confirmar que é a publicada.</span> <a href="confirmar.html" target="_blank" rel="noopener" data-texto="como_confirmar">Como confirmar</a></div>
+    <div class="historico" id="historico" hidden></div>
+  </header>
+  <main class="mensagens" id="mensagens">
+    <p class="aviso" data-texto="aviso">O que escreves aqui é cifrado no teu telemóvel e só é lido dentro da caixa-forte. Nem o Recato o consegue ler.</p>
+  </main>
+  <section class="painel" id="painel" hidden></section>
+  <form class="caixa" id="caixa">
+    <textarea id="texto" rows="1" data-placeholder="placeholder" placeholder="Escreve aqui…" disabled></textarea>
+    <button type="submit" id="enviar" data-texto="enviar" disabled>Enviar</button>
+  </form>
+</div>
+<script type="module" src="privada.js" integrity="{{SRI_PRIVADA}}"></script>
+</body>
+</html>

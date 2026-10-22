@@ -1,0 +1,25 @@
+{
+  "name": "mobile-recato",
+  "version": "1.0.0",
+  "description": "Casca Capacitor (iOS + Android) do Recato — abre https://recato.pt",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --test privada/testes/ extensao/testes/ scripts/testes/",
+    "privada": "node scripts/construir_privada.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@capacitor/android": "^7.6.7",
+    "@capacitor/cli": "^7.6.7",
+    "@capacitor/core": "^7.6.7",
+    "@capacitor/ios": "^7.6.7",
+    "@capacitor/push-notifications": "^7.0.7",
+    "openai": "7.42.0",
+    "privatemode-ai": "1.59.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.10"
+  }
+}

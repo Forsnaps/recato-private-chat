@@ -1,0 +1,10 @@
+{
+  "local": {
+    "manifestos": "https://publico.recato.test/manifestos.json",
+    "repositorio": "https://publico.recato.test/"
+  },
+  "producao": {
+    "manifestos": "https://raw.githubusercontent.com/Forsnaps/recato-private-chat/main/manifestos.json",
+    "repositorio": "https://github.com/Forsnaps/recato-private-chat"
+  }
+}

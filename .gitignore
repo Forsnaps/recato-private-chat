@@ -1,0 +1,4 @@
+# Para repetir a compilação dentro de codigo/ (npm ci; npm run privada)
+codigo/node_modules/
+codigo/dist/
+.DS_Store

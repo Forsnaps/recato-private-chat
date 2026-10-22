@@ -1,0 +1,57 @@
+{
+  "versao": "1.0.0",
+  "app": {
+    "assets/privada/estilo.css": "8ec57c901b6720dc1180cc535f8ce2c78face9a73b0da4be642039ae4638e91b",
+    "assets/privada/index.html": "416a8522e9e5b062cb1a68b1669eee07c6f5f791fee372af132bf117e5849633",
+    "assets/privada/licencas.txt": "05ec28803290b664de6e043a9fce641e8a3efcc2794798cfb51e35d8aad6d063",
+    "assets/privada/privada.js": "850fc959637dac10292288eae4fea3e6e36bc349d120c92223bb048794c229d4",
+    "assets/privada/privatemode.wasm": "86aa4b0101d07afd44c3ed99ed27d43caecc6e2d0a2fa0d576a1463d944e5f1d"
+  },
+  "web": {
+    "confirmar.css": "8da1c8a252b0a065d19db8219e5785e313b471127ed00885bc33656d5995be09",
+    "confirmar.html": "f4278fd2cd561fa49bbca6ec46e4c1595be383d21c3e430f6c811a6ea6501c33",
+    "estilo.css": "8ec57c901b6720dc1180cc535f8ce2c78face9a73b0da4be642039ae4638e91b",
+    "index.html": "416a8522e9e5b062cb1a68b1669eee07c6f5f791fee372af132bf117e5849633",
+    "licencas.txt": "05ec28803290b664de6e043a9fce641e8a3efcc2794798cfb51e35d8aad6d063",
+    "privada.js": "850fc959637dac10292288eae4fea3e6e36bc349d120c92223bb048794c229d4",
+    "privatemode.wasm": "86aa4b0101d07afd44c3ed99ed27d43caecc6e2d0a2fa0d576a1463d944e5f1d"
+  },
+  "extensao": {
+    "chrome": {
+      "conferir.js": "a963ac2fe9082147a074ffb4dd9ccd6216e9e21fe1331224383df940c9c08d54",
+      "fundo.js": "8a43f4467c1c521d17ae30f5ac53908a171b5b331f99dd450a9a346dc4bdd3a6",
+      "icones/icone-128.png": "51fee21670970e029b96670411d40f7c2f2fbb69f284caca55faf0f746dc1a43",
+      "icones/icone-16.png": "d83c45b0b5d5031fb6caa706ce48370c2b8d04c5535908c391f3d407c32f418e",
+      "icones/icone-32.png": "7bdd9584fbe6ba9f24bc5d55ebfc6617b8ee2e2c0dbd35405ad8040d280c2568",
+      "icones/icone-48.png": "bc7590a940fae3928e7e7ee8cc07a78af146a2c6ee9f9c2309cab6d06ce67b8a",
+      "manifest.json": "5def3b34a699e3de7de0c9ce86b4aab640701e7a5951da83cf9c6b0d71064e93",
+      "popup.css": "d80a18bff8b47482d1171824def2e8f6954ce1d4d6df9b964de49c159533989d",
+      "popup.html": "5cd45ae852d1ca5766f53d74fb8052ef15d712d4e04e14701c4f758e8604c0a9",
+      "popup.js": "429b25486a10281b154a50138343264d329302259a4499717d1e69206d29bcea",
+      "privada/estilo.css": "8ec57c901b6720dc1180cc535f8ce2c78face9a73b0da4be642039ae4638e91b",
+      "privada/index.html": "416a8522e9e5b062cb1a68b1669eee07c6f5f791fee372af132bf117e5849633",
+      "privada/licencas.txt": "05ec28803290b664de6e043a9fce641e8a3efcc2794798cfb51e35d8aad6d063",
+      "privada/privada.js": "850fc959637dac10292288eae4fea3e6e36bc349d120c92223bb048794c229d4",
+      "privada/privatemode.wasm": "86aa4b0101d07afd44c3ed99ed27d43caecc6e2d0a2fa0d576a1463d944e5f1d",
+      "recato.js": "1ebe6a3626177a14302dbe0fccdfebb4d37e3e8d13dfc06aef8e05e59e70a6d0"
+    },
+    "firefox": {
+      "conferir.js": "a963ac2fe9082147a074ffb4dd9ccd6216e9e21fe1331224383df940c9c08d54",
+      "fundo.js": "8a43f4467c1c521d17ae30f5ac53908a171b5b331f99dd450a9a346dc4bdd3a6",
+      "icones/icone-128.png": "51fee21670970e029b96670411d40f7c2f2fbb69f284caca55faf0f746dc1a43",
+      "icones/icone-16.png": "d83c45b0b5d5031fb6caa706ce48370c2b8d04c5535908c391f3d407c32f418e",
+      "icones/icone-32.png": "7bdd9584fbe6ba9f24bc5d55ebfc6617b8ee2e2c0dbd35405ad8040d280c2568",
+      "icones/icone-48.png": "bc7590a940fae3928e7e7ee8cc07a78af146a2c6ee9f9c2309cab6d06ce67b8a",
+      "manifest.json": "e684bee5ac1a04bce47dbc9a7dde9baa8095a0a53a82c1d09b65ca0331220b52",
+      "popup.css": "d80a18bff8b47482d1171824def2e8f6954ce1d4d6df9b964de49c159533989d",
+      "popup.html": "5cd45ae852d1ca5766f53d74fb8052ef15d712d4e04e14701c4f758e8604c0a9",
+      "popup.js": "429b25486a10281b154a50138343264d329302259a4499717d1e69206d29bcea",
+      "privada/estilo.css": "8ec57c901b6720dc1180cc535f8ce2c78face9a73b0da4be642039ae4638e91b",
+      "privada/index.html": "416a8522e9e5b062cb1a68b1669eee07c6f5f791fee372af132bf117e5849633",
+      "privada/licencas.txt": "05ec28803290b664de6e043a9fce641e8a3efcc2794798cfb51e35d8aad6d063",
+      "privada/privada.js": "850fc959637dac10292288eae4fea3e6e36bc349d120c92223bb048794c229d4",
+      "privada/privatemode.wasm": "86aa4b0101d07afd44c3ed99ed27d43caecc6e2d0a2fa0d576a1463d944e5f1d",
+      "recato.js": "1ebe6a3626177a14302dbe0fccdfebb4d37e3e8d13dfc06aef8e05e59e70a6d0"
+    }
+  }
+}
