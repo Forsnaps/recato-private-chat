@@ -18,6 +18,7 @@ import { codigoValido } from './cofre.js';
 import { criarHistorico } from './historico.js';
 import { criarPlataforma } from './plataforma.js';
 import { criarServidor } from './servidor.js';
+import { formatar } from './texto.js';
 
 // Impressão SHA-256 do privatemode.wasm, posta pela compilação
 // (scripts/construir_privada.mjs): o SDK recusa outro ficheiro.
@@ -124,6 +125,8 @@ const $ = (id) => document.getElementById(id);
 for (const el of document.querySelectorAll('[data-texto]')) el.textContent = t(el.dataset.texto);
 for (const el of document.querySelectorAll('[data-placeholder]')) el.placeholder = t(el.dataset.placeholder);
 document.documentElement.lang = PT ? 'pt-PT' : 'en';
+// «Como confirmar» tem uma página por língua.
+if (!PT) $('como-confirmar').href = 'confirm.html';
 
 function estado(texto, classe) {
   const el = $('estado');
@@ -161,18 +164,8 @@ function botaoComConfirmacao(texto, confirmar, acao, classe = '') {
   return b;
 }
 
-// O modelo escreve em Markdown: mostra-se o negrito e os títulos, e o resto
-// fica texto. Escapa-se tudo antes, por isso nenhum HTML do modelo entra.
-function escapar(texto) {
-  return texto.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-function formatar(texto) {
-  return escapar(texto)
-    .replace(/^#{1,6}\s+(.+)$/gm, '<strong>$1</strong>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-}
-
+// O Markdown do modelo (negrito, títulos e tabelas) vem de texto.js, que
+// escapa tudo antes: nenhum HTML do modelo entra.
 function mostrar(caixa, texto) {
   if (caixa.classList.contains('recato')) caixa.innerHTML = formatar(texto);
   else caixa.textContent = texto;

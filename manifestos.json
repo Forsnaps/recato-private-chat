@@ -57,6 +57,71 @@
         }
       },
       "publicada": "2026-10-22T23:22:42.924Z"
+    },
+    {
+      "versao": "1.0.1",
+      "app": {
+        "assets/privada/estilo.css": "27c6134e443d7169dd83ee5e21a3de015d01bb8592a5532c4268e4f2ec328720",
+        "assets/privada/index.html": "965fd56084c951d7ec57e6a01d7da025a2b5d30498eb7f94e305cfe1210bbdda",
+        "assets/privada/licencas.txt": "05ec28803290b664de6e043a9fce641e8a3efcc2794798cfb51e35d8aad6d063",
+        "assets/privada/privada.js": "7dc686881b06c1859ae8143d0d3d8c2fa6c07dfd0bb59a3b05fd8abfcea31077",
+        "assets/privada/privatemode.wasm": "86aa4b0101d07afd44c3ed99ed27d43caecc6e2d0a2fa0d576a1463d944e5f1d"
+      },
+      "web": {
+        "confirm.html": "ade211c374d0f4a361fc77dc428687de19fd697758a29039410bfc2796972efe",
+        "confirmar.css": "7436115c17ec28faf8814a6d8eb116c6387136bda4b37921289324dd5d51df87",
+        "confirmar.html": "4e91aed1909152c7f3b3d61362ac13026f05a51c64fb74477a5a62c8ba4e2188",
+        "estilo.css": "27c6134e443d7169dd83ee5e21a3de015d01bb8592a5532c4268e4f2ec328720",
+        "index.html": "965fd56084c951d7ec57e6a01d7da025a2b5d30498eb7f94e305cfe1210bbdda",
+        "licencas.txt": "05ec28803290b664de6e043a9fce641e8a3efcc2794798cfb51e35d8aad6d063",
+        "privada.js": "7dc686881b06c1859ae8143d0d3d8c2fa6c07dfd0bb59a3b05fd8abfcea31077",
+        "privatemode.wasm": "86aa4b0101d07afd44c3ed99ed27d43caecc6e2d0a2fa0d576a1463d944e5f1d"
+      },
+      "extensao": {
+        "chrome": {
+          "_locales/en/messages.json": "a65d1f5113eae8a50eb6e152647aa98b71ba84385a0c0b7b44e69a601a6de3f0",
+          "_locales/pt_BR/messages.json": "9ad8274020c41eed901f562530215142b8a3c72699063c4fbd0d5f48a3531beb",
+          "_locales/pt_PT/messages.json": "9ad8274020c41eed901f562530215142b8a3c72699063c4fbd0d5f48a3531beb",
+          "conferir.js": "a259fa2e7fda1a8bc804183bdb8a12a79f5221b82a093f5136d1c935ef0b5f0a",
+          "fundo.js": "dca6d74d3d601ab1c5c6b01a94a9b293648a951ee06f7709bb6b43f0f352a577",
+          "icones/icone-128.png": "51fee21670970e029b96670411d40f7c2f2fbb69f284caca55faf0f746dc1a43",
+          "icones/icone-16.png": "d83c45b0b5d5031fb6caa706ce48370c2b8d04c5535908c391f3d407c32f418e",
+          "icones/icone-32.png": "7bdd9584fbe6ba9f24bc5d55ebfc6617b8ee2e2c0dbd35405ad8040d280c2568",
+          "icones/icone-48.png": "bc7590a940fae3928e7e7ee8cc07a78af146a2c6ee9f9c2309cab6d06ce67b8a",
+          "manifest.json": "59aabbbaf7cee085af421359be2153f8320338c5f2849b1bc3e45f036f3b552f",
+          "popup.css": "d80a18bff8b47482d1171824def2e8f6954ce1d4d6df9b964de49c159533989d",
+          "popup.html": "5cd45ae852d1ca5766f53d74fb8052ef15d712d4e04e14701c4f758e8604c0a9",
+          "popup.js": "e9b3c09a6b9a82694308bada769a9f4e4e9f8448f8f1c2d846cc91c80bf18ab7",
+          "privada/estilo.css": "27c6134e443d7169dd83ee5e21a3de015d01bb8592a5532c4268e4f2ec328720",
+          "privada/index.html": "965fd56084c951d7ec57e6a01d7da025a2b5d30498eb7f94e305cfe1210bbdda",
+          "privada/licencas.txt": "05ec28803290b664de6e043a9fce641e8a3efcc2794798cfb51e35d8aad6d063",
+          "privada/privada.js": "7dc686881b06c1859ae8143d0d3d8c2fa6c07dfd0bb59a3b05fd8abfcea31077",
+          "privada/privatemode.wasm": "86aa4b0101d07afd44c3ed99ed27d43caecc6e2d0a2fa0d576a1463d944e5f1d",
+          "recato.js": "1ebe6a3626177a14302dbe0fccdfebb4d37e3e8d13dfc06aef8e05e59e70a6d0"
+        },
+        "firefox": {
+          "_locales/en/messages.json": "a65d1f5113eae8a50eb6e152647aa98b71ba84385a0c0b7b44e69a601a6de3f0",
+          "_locales/pt_BR/messages.json": "9ad8274020c41eed901f562530215142b8a3c72699063c4fbd0d5f48a3531beb",
+          "_locales/pt_PT/messages.json": "9ad8274020c41eed901f562530215142b8a3c72699063c4fbd0d5f48a3531beb",
+          "conferir.js": "a259fa2e7fda1a8bc804183bdb8a12a79f5221b82a093f5136d1c935ef0b5f0a",
+          "fundo.js": "dca6d74d3d601ab1c5c6b01a94a9b293648a951ee06f7709bb6b43f0f352a577",
+          "icones/icone-128.png": "51fee21670970e029b96670411d40f7c2f2fbb69f284caca55faf0f746dc1a43",
+          "icones/icone-16.png": "d83c45b0b5d5031fb6caa706ce48370c2b8d04c5535908c391f3d407c32f418e",
+          "icones/icone-32.png": "7bdd9584fbe6ba9f24bc5d55ebfc6617b8ee2e2c0dbd35405ad8040d280c2568",
+          "icones/icone-48.png": "bc7590a940fae3928e7e7ee8cc07a78af146a2c6ee9f9c2309cab6d06ce67b8a",
+          "manifest.json": "27310728d28716e88ca970beae172a2dbe28b96cb7f16a229afe4530fe50a248",
+          "popup.css": "d80a18bff8b47482d1171824def2e8f6954ce1d4d6df9b964de49c159533989d",
+          "popup.html": "5cd45ae852d1ca5766f53d74fb8052ef15d712d4e04e14701c4f758e8604c0a9",
+          "popup.js": "e9b3c09a6b9a82694308bada769a9f4e4e9f8448f8f1c2d846cc91c80bf18ab7",
+          "privada/estilo.css": "27c6134e443d7169dd83ee5e21a3de015d01bb8592a5532c4268e4f2ec328720",
+          "privada/index.html": "965fd56084c951d7ec57e6a01d7da025a2b5d30498eb7f94e305cfe1210bbdda",
+          "privada/licencas.txt": "05ec28803290b664de6e043a9fce641e8a3efcc2794798cfb51e35d8aad6d063",
+          "privada/privada.js": "7dc686881b06c1859ae8143d0d3d8c2fa6c07dfd0bb59a3b05fd8abfcea31077",
+          "privada/privatemode.wasm": "86aa4b0101d07afd44c3ed99ed27d43caecc6e2d0a2fa0d576a1463d944e5f1d",
+          "recato.js": "1ebe6a3626177a14302dbe0fccdfebb4d37e3e8d13dfc06aef8e05e59e70a6d0"
+        }
+      },
+      "publicada": "2026-10-23T22:36:21.156Z"
     }
   ]
 }

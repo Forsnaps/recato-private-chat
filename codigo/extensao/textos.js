@@ -15,6 +15,7 @@ const PT = {
     + 'abre o ecrã que vem dentro desta extensão. Na página privada.recato.ai, a extensão confere se é a publicada.',
   popup_fora: 'Este separador não é a página privada.recato.ai.',
   como_confirmar: 'Como confirmar',
+  ligacao_confirmar: 'https://privada.recato.ai/confirmar.html',
 };
 
 const EN = {
@@ -32,6 +33,7 @@ const EN = {
     + 'screen that comes inside this extension. On the privada.recato.ai page, the extension checks it is the published one.',
   popup_fora: 'This tab is not the privada.recato.ai page.',
   como_confirmar: 'How to check',
+  ligacao_confirmar: 'https://privada.recato.ai/confirm.html',
 };
 
 export const textos = (lingua) => (/^pt\b/i.test(lingua || '') ? PT : EN);

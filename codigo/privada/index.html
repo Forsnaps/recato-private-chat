@@ -6,6 +6,7 @@
 <meta http-equiv="Content-Security-Policy"
       content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; connect-src 'self' https://*.recato.ai https://recato.ai https://cdn.confidential.cloud; img-src 'self' data:">
 <title>Conversa privada</title>
+<link rel="icon" href="data:,">
 <link rel="stylesheet" href="estilo.css" integrity="{{SRI_ESTILO}}">
 </head>
 <body>
@@ -16,7 +17,7 @@
       <button type="button" class="botao pequeno secundario" id="ver-conversas" data-texto="conversas" hidden>Conversas</button>
     </div>
     <div class="estado" id="estado" data-texto="a_verificar">A verificar a caixa-forte…</div>
-    <div class="faixa" id="faixa" hidden><span data-texto="faixa_web">Esta página vem do servidor do Recato: sem a extensão (ou a app) não consegues confirmar que é a publicada.</span> <a href="confirmar.html" target="_blank" rel="noopener" data-texto="como_confirmar">Como confirmar</a></div>
+    <div class="faixa" id="faixa" hidden><span data-texto="faixa_web">Esta página vem do servidor do Recato: sem a extensão (ou a app) não consegues confirmar que é a publicada.</span> <a href="confirmar.html" id="como-confirmar" target="_blank" rel="noopener" data-texto="como_confirmar">Como confirmar</a></div>
     <div class="historico" id="historico" hidden></div>
   </header>
   <main class="mensagens" id="mensagens">

@@ -82,7 +82,7 @@ export async function conferirSeparador(api, separadorId, pedido, versoesDe) {
   const recebidos = { ...(pedido.recebidos || {}), ...(exatos || {}) };
   let resultado;
   try {
-    resultado = conferir(recebidos, await versoesDe());
+    resultado = conferir(recebidos, await versoesDe(), pedido.pagina);
   } catch (e) {
     resultado = { estado: 'erro', motivo: String(e.message || e) };
   }
@@ -117,6 +117,10 @@ export function capturarAoPassar(api) {
     const ficheiro = ficheiroDe(pedido.url);
     // Só o que a página recebe: nem pedidos sem separador nem os da extensão.
     if (!ficheiro || pedido.tabId < 0 || pedido.originUrl?.startsWith('moz-extension:')) return;
+    // Nem o ícone do separador: o browser pede-o sozinho (por exemplo, nas
+    // licenças) e uma imagem não corre código. Um documento aberto com esse
+    // nome conta como os outros.
+    if (ficheiro === 'favicon.ico' && pedido.type === 'image') return;
     const chave = `recebidos:${pedido.tabId}`;
     const filtro = api.webRequest.filterResponseData(pedido.requestId);
     const pedacos = [];

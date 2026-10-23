@@ -1,9 +1,9 @@
-// Na página privada.recato.ai (22/10/2026): confere se é uma versão
-// publicada. Tira as impressões digitais do que o browser recebeu — da cópia
-// que o browser guardou (no Firefox o fundo já as tirou dos bytes ao
-// passarem, que é exato) —, pede a comparação ao fundo e mostra o resultado
-// na faixa da própria página; se não for a publicada, tapa a página com um
-// aviso.
+// Nas páginas de privada.recato.ai (22/10/2026; a conversa, «Como confirmar»,
+// as licenças): confere se são de uma versão publicada. Tira as impressões
+// digitais do que o browser recebeu — da cópia que o browser guardou (no
+// Firefox o fundo já as tirou dos bytes ao passarem, que é exato) —, pede a
+// comparação ao fundo e mostra o resultado na faixa da página da conversa; se
+// não for a publicada, tapa a página com um aviso.
 import { ficheiroDe, sha256 } from './conferencia.js';
 import { textos } from './textos.js';
 
@@ -79,8 +79,11 @@ async function conferirAgora() {
   // No Firefox o fundo viu os bytes ao passarem; ler aqui a cópia guardada
   // seria outro pedido (e o fundo vê-o também).
   const exata = (await api.runtime.sendMessage({ tipo: 'conferencia_exata' }).catch(() => null))?.exata;
+  // O documento aberto (a conversa, «Como confirmar», as licenças) diz que
+  // versão é; o resto tem de ser dessa mesma versão.
   const resultado = await api.runtime.sendMessage({
-    tipo: 'conferir', recebidos: exata ? {} : await recebidos(), estranhos: await estranhos(),
+    tipo: 'conferir', pagina: ficheiroDe(location.href), recebidos: exata ? {} : await recebidos(),
+    estranhos: await estranhos(),
   }).catch(() => null);
   mostrar(resultado);
   return resultado;

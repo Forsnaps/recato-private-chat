@@ -100,6 +100,11 @@ test('conferir: o ícone e o popup recebem o resultado; o Firefox usa os bytes e
   assert.deepEqual([r.estado, r.estranhos], ['interferencia', ['https://outra/x.js']]);
   r = await conferirSeparador(api, 9, { recebidos: { 'index.html': h('a') } }, async () => { throw new Error('rede'); });
   assert.deepEqual([r.estado, api.icone[9].text], ['erro', '?']);
+
+  // «Como confirmar» confere-se a partir dela própria (antes dava sempre «?»).
+  r = await conferirSeparador(api, 10, { pagina: 'confirm.html', recebidos: { 'confirm.html': h('c') }, estranhos: [] },
+    async () => [{ versao: '1.0.1', web: { 'index.html': h('a'), 'confirm.html': h('c') } }]);
+  assert.deepEqual([r.estado, r.versao, api.icone[10].text], ['conferida', '1.0.1', '✓']);
 });
 
 test('Firefox: as impressões digitais dos bytes que passam, mesmo que o write() fique com eles', async () => {
@@ -129,4 +134,20 @@ test('Firefox: as impressões digitais dos bytes que passam, mesmo que o write()
   ouvinte({ url: 'https://privada.recato.ai/', tabId: 5, requestId: 'r4', type: 'xmlhttprequest',
     originUrl: 'moz-extension://abc/conferir.js' });
   assert.equal(filtro.escrito.length, 2, 'Outros sítios, pedidos sem separador e os da extensão não se tocam.');
+});
+
+test('Firefox: o ícone que o browser pede sozinho não conta; um documento com esse nome conta', async () => {
+  const { capturarAoPassar } = await import('../fundo_regras.js');
+  const api = apiFalsa();
+  let ouvinte;
+  const filtrados = [];
+  api.webRequest = {
+    onBeforeRequest: { addListener: (f) => { ouvinte = f; } },
+    filterResponseData: (id) => { filtrados.push(id); return { write() {}, close() {} }; },
+  };
+  capturarAoPassar(api);
+  ouvinte({ url: 'https://privada.recato.ai/favicon.ico', tabId: 5, requestId: 'icone', type: 'image' });
+  ouvinte({ url: 'https://privada.recato.ai/favicon.ico', tabId: 5, requestId: 'documento', type: 'main_frame' });
+  ouvinte({ url: 'https://privada.recato.ai/outra.png', tabId: 5, requestId: 'imagem', type: 'image' });
+  assert.deepEqual(filtrados, ['documento', 'imagem']);
 });

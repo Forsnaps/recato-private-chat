@@ -10,6 +10,7 @@ document.documentElement.lang = /^pt\b/i.test(navigator.language || '') ? 'pt-PT
 $('titulo').textContent = t.popup_titulo;
 $('explica').textContent = t.popup_explica;
 $('confirmar').textContent = t.como_confirmar;
+$('confirmar').href = t.ligacao_confirmar;
 
 const [separador] = await api.tabs.query({ active: true, currentWindow: true });
 if (!separador?.url?.startsWith('https://privada.recato.ai/')) {

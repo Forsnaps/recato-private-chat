@@ -3,7 +3,8 @@
 // o módulo da caixa-forte, privatemode.wasm):
 //
 // * a app Android: android/app/src/main/assets/privada/;
-// * a página privada.recato.ai: dist/web/, com a página «Como confirmar»;
+// * a página privada.recato.ai: dist/web/, com a página «Como confirmar»
+//   (confirmar.html em português, confirm.html em inglês);
 // * a extensão do browser, para Chrome/Edge (dist/extensao-chrome/) e para
 //   Firefox (dist/extensao-firefox/), com o ecrã dentro dela (privada/).
 //
@@ -87,16 +88,43 @@ async function compilarEcra(versao) {
   };
 }
 
-function paginaComoConfirmar(ecra, versao, publicos) {
+/** Uma página «Como confirmar» (confirmar.html ou confirm.html), com as
+ *  impressões digitais desta versão. */
+function paginaComoConfirmar(nome, ecra, versao, publicos) {
   const linhas = ['index.html', 'estilo.css', 'privada.js', 'privatemode.wasm']
     .map((f) => `<tr><td><code>${f}</code></td><td class="impressao">${sha256(ecra[f])}</td></tr>`).join('\n');
-  const pagina = fs.readFileSync(path.join(ECRA, 'confirmar.html'), 'utf8')
+  const pagina = fs.readFileSync(path.join(ECRA, nome), 'utf8')
     .replaceAll('{{VERSAO}}', versao)
     .replaceAll('{{IMPRESSOES}}', linhas)
     .replaceAll('{{MANIFESTOS}}', publicos.manifestos)
     .replaceAll('{{REPOSITORIO}}', publicos.repositorio);
-  if (pagina.includes('{{')) throw new Error('confirmar.html: ficou uma marca por preencher');
+  if (pagina.includes('{{')) throw new Error(`${nome}: ficou uma marca por preencher`);
   return Buffer.from(pagina);
+}
+
+/** O nome e o resumo da extensão (no browser e nas lojas) pela língua do
+ *  browser, como o ecrã e o popup: pt-* em português, o resto em inglês. */
+const NOME_E_RESUMO = {
+  en: {
+    nome: 'Recato — Private chat',
+    nome_curto: 'Recato private',
+    resumo: "Recato's private chat with the published code, and the check of the privada.recato.ai page.",
+  },
+  pt: {
+    nome: 'Recato — Conversa privada',
+    nome_curto: 'Recato privada',
+    resumo: 'A conversa privada do Recato com o código publicado, e a conferência da página privada.recato.ai.',
+  },
+};
+/** As pastas _locales: os browsers e as lojas não juntam pt_PT e pt_BR num «pt». */
+const LINGUAS_DA_EXTENSAO = { en: 'en', pt_PT: 'pt', pt_BR: 'pt' };
+
+function linguasDaExtensao() {
+  return Object.fromEntries(Object.entries(LINGUAS_DA_EXTENSAO).map(([pasta, lingua]) => {
+    const mensagens = Object.fromEntries(Object.entries(NOME_E_RESUMO[lingua])
+      .map(([chave, texto]) => [chave, { message: texto }]));
+    return [`_locales/${pasta}/messages.json`, Buffer.from(`${JSON.stringify(mensagens, null, 2)}\n`)];
+  }));
 }
 
 /** O manifest.json da extensão; o Firefox lê os bytes ao passarem
@@ -104,10 +132,11 @@ function paginaComoConfirmar(ecra, versao, publicos) {
 function manifestDaExtensao(navegador, versao) {
   const manifest = {
     manifest_version: 3,
-    name: 'Recato — Conversa privada',
-    short_name: 'Recato privada',
+    name: '__MSG_nome__',
+    short_name: '__MSG_nome_curto__',
     version: versao,
-    description: 'A conversa privada do Recato com o código publicado, e a conferência da página privada.recato.ai.',
+    description: '__MSG_resumo__',
+    default_locale: 'en',
     icons: { 16: 'icones/icone-16.png', 32: 'icones/icone-32.png', 48: 'icones/icone-48.png', 128: 'icones/icone-128.png' },
     action: { default_popup: 'popup.html', default_icon: { 16: 'icones/icone-16.png', 32: 'icones/icone-32.png' } },
     permissions: ['storage'],
@@ -122,7 +151,18 @@ function manifestDaExtensao(navegador, versao) {
   if (navegador === 'firefox') {
     manifest.background = { scripts: ['fundo.js'], type: 'module' };
     manifest.permissions.push('webRequest', 'webRequestBlocking', 'webRequestFilterResponse');
-    manifest.browser_specific_settings = { gecko: { id: 'conversa-privada@recato.ai', strict_min_version: '121.0' } };
+    // O que sai do browser, declarado como a Mozilla exige às extensões novas
+    // desde 3/11/2025: o texto das mensagens (cifrado, mas é o que a pessoa
+    // escreve) e a sessão que o Recato entrega à extensão. O Firefox só lê
+    // esta declaração a partir da 140 (no Android, da 142).
+    manifest.browser_specific_settings = {
+      gecko: {
+        id: 'conversa-privada@recato.ai',
+        strict_min_version: '140.0',
+        data_collection_permissions: { required: ['personalCommunications', 'authenticationInfo'] },
+      },
+      gecko_android: { strict_min_version: '142.0' },
+    };
   } else {
     manifest.background = { service_worker: 'fundo.js', type: 'module' };
   }
@@ -149,6 +189,7 @@ async function compilarExtensao(navegador, ecra, versao, publicos) {
     'popup.js': await compilar(path.join(EXTENSAO, 'popup.js'), { plugins: [publicacao] }),
     'popup.html': fs.readFileSync(path.join(EXTENSAO, 'popup.html')),
     'popup.css': fs.readFileSync(path.join(EXTENSAO, 'popup.css')),
+    ...linguasDaExtensao(),
   };
   for (const icone of fs.readdirSync(path.join(EXTENSAO, 'icones')).sort()) {
     ficheiros[`icones/${icone}`] = fs.readFileSync(path.join(EXTENSAO, 'icones', icone));
@@ -175,7 +216,9 @@ export async function construir({ publicacao = 'local', dist = DIST, app = true 
   const publicos = enderecosPublicos(publicacao);
   const ecra = await compilarEcra(versao);
   const doEcra = Object.fromEntries(ECRA_PUBLICADO.map((nome) => [nome, ecra[nome]]));
-  const web = { ...doEcra, 'confirmar.html': paginaComoConfirmar(ecra, versao, publicos),
+  const web = { ...doEcra,
+    'confirmar.html': paginaComoConfirmar('confirmar.html', ecra, versao, publicos),
+    'confirm.html': paginaComoConfirmar('confirm.html', ecra, versao, publicos),
     'confirmar.css': fs.readFileSync(path.join(ECRA, 'confirmar.css')) };
   const chrome = await compilarExtensao('chrome', ecra, versao, publicos);
   const firefox = await compilarExtensao('firefox', ecra, versao, publicos);

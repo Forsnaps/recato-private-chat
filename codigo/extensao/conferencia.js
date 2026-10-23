@@ -43,15 +43,19 @@ export function versoesPublicadas(manifestos) {
 
 /**
  * Compara o que o browser recebeu (*recebidos*: ficheiro → impressão digital)
- * com as versões publicadas. Devolve:
- * - {estado: 'conferida', versao} — tudo igual a uma versão publicada;
+ * com as versões publicadas, a partir do documento aberto no separador
+ * (*pagina*: a conversa, index.html, mas também «Como confirmar» ou as
+ * licenças). Devolve:
+ * - {estado: 'conferida', versao} — tudo igual a uma versão publicada (a mais
+ *   recente, se o documento é igual em várias, como as licenças);
  * - {estado: 'diferente', ficheiros} — há ficheiros que não são os publicados;
- * - {estado: 'incompleta'} — falta a própria página (não se conseguiu ler).
+ * - {estado: 'incompleta'} — falta o próprio documento (não se conseguiu ler)
+ *   ou nunca se publicou um ficheiro com esse nome.
  */
-export function conferir(recebidos, versoes) {
-  if (!recebidos['index.html']) return { estado: 'incompleta' };
-  const versao = versoes.find((v) => v.web['index.html'] === recebidos['index.html']);
-  if (!versao) return { estado: 'diferente', ficheiros: ['index.html'] };
+export function conferir(recebidos, versoes, pagina = 'index.html') {
+  if (!recebidos[pagina] || !versoes.some((v) => v.web[pagina])) return { estado: 'incompleta' };
+  const versao = versoes.findLast((v) => v.web[pagina] === recebidos[pagina]);
+  if (!versao) return { estado: 'diferente', ficheiros: [pagina] };
   const diferentes = Object.entries(recebidos)
     .filter(([ficheiro, impressao]) => versao.web[ficheiro] !== impressao)
     .map(([ficheiro]) => ficheiro)

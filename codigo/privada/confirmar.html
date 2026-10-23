@@ -3,13 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self' data:">
 <title>Conversa privada do Recato — como confirmar</title>
+<link rel="icon" href="data:,">
 <link rel="stylesheet" href="confirmar.css">
 </head>
 <body>
 <main>
-<p class="linguas"><a href="#en" lang="en">English below</a></p>
+<p class="linguas"><a href="confirm.html" lang="en" hreflang="en">English</a></p>
 
 <h1>Conversa privada do Recato: como confirmar</h1>
 <p>Na conversa privada, o que escreves é cifrado no teu telemóvel ou no teu browser e só é lido dentro de uma caixa-forte verificada. O servidor do Recato só passa bytes cifrados. As conversas guardadas ficam cifradas com uma chave que só tu tens.</p>
@@ -41,35 +42,6 @@
 <li>A extensão deteta uma página diferente; não a consegue impedir de chegar.</li>
 <li>Outra extensão instalada no teu browser pode ler o que está na página.</li>
 </ul>
-
-<hr>
-
-<section id="en" lang="en">
-<h1>Recato private chat: how to check</h1>
-<p>In the private chat, what you write is encrypted on your phone or in your browser and only read inside a verified secure enclave. Recato's server only passes encrypted bytes along. Saved chats are encrypted with a key only you have.</p>
-<p>All of this depends on the screen's code being the published one. In the app and in the extension, that code comes installed with them. On this page, it comes from Recato's server on every visit. So there are three ways to check it.</p>
-
-<h2>1. In the Android app</h2>
-<p>The private chat screen comes inside the app and only changes with a new version in the store. Its files are in the app under <code>assets/privada/</code> and have the published fingerprints.</p>
-
-<h2>2. With the «Recato — Private chat» extension</h2>
-<p>In Chrome, Edge and Firefox, the private chat opens from the copy of the screen that comes inside the extension: the code does not come from the server. And if you open this page with the extension, it checks it: the icon shows a green <strong>✓</strong> if the page is the published one, and a red warning covers the page if it is not.</p>
-
-<h2>3. By hand</h2>
-<p>Download each file of this page and compare its SHA-256 fingerprint with the published one, for example:</p>
-<pre>curl -s https://privada.recato.ai/privada.js | shasum -a 256</pre>
-<p>The page (<code>index.html</code>) carries the fingerprints of <code>privada.js</code> and <code>estilo.css</code>, and the browser refuses others; <code>privada.js</code> carries the fingerprint of the enclave module (<code>privatemode.wasm</code>) and refuses another.</p>
-
-<h2>Fingerprints of version {{VERSAO}}</h2>
-<p>See the table above. Every version is published at <a href="{{MANIFESTOS}}">{{MANIFESTOS}}</a>, a public place that is the same for everyone, with the code of this part at <a href="{{REPOSITORIO}}">{{REPOSITORIO}}</a>. Anyone can repeat the build from that code and get exactly the same files. The licences of the code, ours and third parties', are in <a href="licencas.txt">licencas.txt</a>.</p>
-
-<h2>Limits</h2>
-<ul>
-<li>Without the extension or the app, this page cannot prove by itself that it is the published one.</li>
-<li>The extension detects a different page; it cannot stop it from arriving.</li>
-<li>Another extension installed in your browser can read what is on the page.</li>
-</ul>
-</section>
 </main>
 </body>
 </html>

@@ -48,3 +48,24 @@ test('diferente: uma página que não foi publicada, ou ficheiros de outra vers�
 test('incompleta: sem a própria página não se pode conferir', () => {
   assert.deepEqual(conferir({ 'privada.js': h('b') }, [V1]), { estado: 'incompleta' });
 });
+
+const C1 = { versao: '1.0.0', web: { 'index.html': h('a'), 'confirmar.html': h('1'), 'confirmar.css': h('2'),
+  'licencas.txt': h('3') } };
+const C2 = { versao: '1.0.1', web: { 'index.html': h('d'), 'confirmar.html': h('4'), 'confirm.html': h('5'),
+  'confirmar.css': h('2'), 'licencas.txt': h('3') } };
+
+test('«Como confirmar» e as licenças conferem-se a partir delas próprias', () => {
+  assert.deepEqual(conferir({ 'confirm.html': h('5'), 'confirmar.css': h('2') }, [C1, C2], 'confirm.html'),
+    { estado: 'conferida', versao: '1.0.1' });
+  assert.deepEqual(conferir({ 'confirmar.html': h('1'), 'confirmar.css': h('2') }, [C1, C2], 'confirmar.html'),
+    { estado: 'conferida', versao: '1.0.0' });
+  assert.deepEqual(conferir({ 'licencas.txt': h('3') }, [C1, C2], 'licencas.txt'), { estado: 'conferida', versao: '1.0.1' },
+    'Igual nas duas versões: diz a mais recente.');
+  assert.deepEqual(conferir({ 'confirm.html': h('9'), 'confirmar.css': h('2') }, [C1, C2], 'confirm.html'),
+    { estado: 'diferente', ficheiros: ['confirm.html'] });
+  assert.deepEqual(conferir({ 'confirm.html': h('5'), 'index.html': h('a') }, [C1, C2], 'confirm.html'),
+    { estado: 'diferente', ficheiros: ['index.html'] }, 'Tudo o que chegou tem de ser da mesma versão.');
+  assert.deepEqual(conferir({ 'confirm.html': h('5') }, [C1], 'confirm.html'), { estado: 'incompleta' },
+    'Um nome que nunca se publicou não diz nada.');
+  assert.deepEqual(conferir({ 'confirmar.css': h('2') }, [C1, C2], 'confirm.html'), { estado: 'incompleta' });
+});

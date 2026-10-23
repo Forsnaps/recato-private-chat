@@ -36,6 +36,7 @@ test('a página, a web e as duas extensões trazem o MESMO ecrã, preso pelas im
     const pagina = web('index.html').toString();
     assert.ok(pagina.includes(`src="privada.js" integrity="${sri(web('privada.js'))}"`));
     assert.ok(pagina.includes(`href="estilo.css" integrity="${sri(web('estilo.css'))}"`));
+    assert.ok(pagina.includes('<link rel="icon" href="data:,">'), 'Ícone vazio: o browser não pede o /favicon.ico.');
     assert.ok(web('privada.js').toString().includes(sha256(web('privatemode.wasm'))),
       'O privada.js traz a impressão digital do módulo da caixa-forte.');
     for (const ficheiro of ['index.html', 'estilo.css', 'privada.js', 'privatemode.wasm', 'licencas.txt']) {
@@ -45,9 +46,19 @@ test('a página, a web e as duas extensões trazem o MESMO ecrã, preso pelas im
       assert.equal(manifesto.extensao.chrome[`privada/${ficheiro}`], impressao, `chrome: ${ficheiro}`);
       assert.equal(manifesto.extensao.firefox[`privada/${ficheiro}`], impressao, `firefox: ${ficheiro}`);
     }
-    const confirmar = web('confirmar.html').toString();
-    assert.ok(confirmar.includes(manifesto.web['privada.js']), '«Como confirmar» mostra as impressões digitais.');
-    assert.ok(!confirmar.includes('{{'), 'Sem marcas por preencher.');
+    // «Como confirmar»: uma página por língua, cada uma só nessa língua.
+    for (const [nome, lingua, outra, daOutra] of [['confirmar.html', 'pt-PT', 'confirm.html', 'how to check'],
+      ['confirm.html', 'en', 'confirmar.html', 'como confirmar']]) {
+      const confirmar = web(nome).toString();
+      assert.equal(manifesto.web[nome], sha256(web(nome)));
+      assert.ok(confirmar.includes(`<html lang="${lingua}">`), `${nome} em ${lingua}.`);
+      assert.ok(!confirmar.toLowerCase().includes(daOutra), `${nome} sem o texto da outra língua.`);
+      assert.ok(confirmar.includes(`href="${outra}"`), `${nome} liga à página na outra língua.`);
+      assert.ok(confirmar.includes(manifesto.web['privada.js']), `${nome} mostra as impressões digitais.`);
+      assert.ok(!confirmar.includes('{{'), `${nome} sem marcas por preencher.`);
+      assert.ok(confirmar.includes('<link rel="icon" href="data:,">') && confirmar.includes("img-src 'self' data:"),
+        `${nome}: ícone vazio (e a política deixa-o), o browser não pede o /favicon.ico.`);
+    }
     const licencas = web('licencas.txt').toString();
     for (const aviso of ['Forsnaps AI - Soluções Tecnológicas, Unipessoal Lda', 'Edgeless Systems GmbH',
       'The Go Authors', 'Apache License']) {
@@ -72,6 +83,12 @@ test('a extensão: Chrome com service worker, Firefox a ler os bytes ao passarem
     assert.deepEqual(firefox.background, { scripts: ['fundo.js'], type: 'module' });
     assert.ok(firefox.permissions.includes('webRequestFilterResponse'));
     assert.equal(firefox.browser_specific_settings.gecko.id, 'conversa-privada@recato.ai');
+    assert.deepEqual(firefox.browser_specific_settings.gecko.data_collection_permissions,
+      { required: ['personalCommunications', 'authenticationInfo'] }, 'O que sai do browser, declarado à Mozilla.');
+    assert.equal(firefox.browser_specific_settings.gecko.strict_min_version, '140.0',
+      'O Firefox só lê a declaração a partir da 140.');
+    assert.equal(firefox.browser_specific_settings.gecko_android.strict_min_version, '142.0');
+    assert.equal(chrome.browser_specific_settings, undefined);
     for (const m of [chrome, firefox]) {
       assert.deepEqual(m.host_permissions, ['https://recato.ai/*', 'https://*.recato.ai/*']);
       assert.ok(m.content_security_policy.extension_pages.includes("'wasm-unsafe-eval'"));
@@ -80,6 +97,33 @@ test('a extensão: Chrome com service worker, Firefox a ler os bytes ao passarem
     }
     const fundo = fs.readFileSync(path.join(dist, 'extensao-chrome', 'fundo.js'), 'utf8');
     assert.ok(fundo.includes('https://publico.recato.test/manifestos.json'), 'O sítio público das impressões digitais.');
+  } finally {
+    fs.rmSync(dist, { recursive: true, force: true });
+  }
+});
+
+test('a extensão: nome e resumo em inglês e, nos browsers em português, em português', async () => {
+  const dist = temporaria();
+  try {
+    await construir({ dist, app: false });
+    for (const navegador of ['chrome', 'firefox']) {
+      const pasta = path.join(dist, `extensao-${navegador}`);
+      const manifest = JSON.parse(fs.readFileSync(path.join(pasta, 'manifest.json')));
+      assert.equal(manifest.default_locale, 'en');
+      assert.equal(manifest.name, '__MSG_nome__');
+      assert.equal(manifest.short_name, '__MSG_nome_curto__');
+      assert.equal(manifest.description, '__MSG_resumo__');
+      const mensagens = (lingua) => JSON.parse(fs.readFileSync(path.join(pasta, '_locales', lingua, 'messages.json')));
+      assert.deepEqual(fs.readdirSync(path.join(pasta, '_locales')).sort(), ['en', 'pt_BR', 'pt_PT']);
+      assert.equal(mensagens('en').nome.message, 'Recato — Private chat');
+      assert.equal(mensagens('pt_PT').nome.message, 'Recato — Conversa privada');
+      assert.deepEqual(mensagens('pt_BR'), mensagens('pt_PT'));
+      for (const lingua of ['en', 'pt_PT']) {
+        assert.deepEqual(Object.keys(mensagens(lingua)).sort(), ['nome', 'nome_curto', 'resumo']);
+        // As lojas cortam o resumo nos 132 carateres.
+        assert.ok(mensagens(lingua).resumo.message.length <= 132, `resumo ${lingua}`);
+      }
+    }
   } finally {
     fs.rmSync(dist, { recursive: true, force: true });
   }
