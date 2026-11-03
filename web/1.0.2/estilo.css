@@ -1,0 +1,150 @@
+html, body { margin: 0; height: 100%; background: #030907; color: #dfe9e5; font: 16px system-ui, sans-serif; }
+[hidden] { display: none !important; }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid #5fb3a1; outline-offset: 2px; }
+.app { display: flex; flex-direction: column; height: 100dvh; }
+.topo { padding: 14px 16px; border-bottom: 1px solid #1e2e2a; }
+.linha-topo { display: flex; align-items: center; gap: 8px 12px; }
+.linha-topo #ver-conversas { margin-left: auto; }
+.titulo { font-weight: 600; }
+/* «Voltar ao Recato» (27/10/2026), só no browser: à esquerda do título; num ecrã estreito o título desce uma linha. */
+.voltar { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; white-space: nowrap; }
+@media (max-width: 560px) {
+  .linha-topo { flex-wrap: wrap; }
+  .voltar:not([hidden]) ~ .titulo { order: 1; flex-basis: 100%; }
+}
+.estado { font-size: 13px; color: #93a9a2; margin-top: 4px; }
+.estado.ok { color: #5fb3a1; }
+.estado.erro { color: #e08a7a; }
+.faixa { font-size: 12px; line-height: 1.4; color: #e8c27a; margin-top: 8px; }
+.faixa a { color: #f3d9a4; }
+.faixa.conferida { color: #5fb3a1; }
+.historico { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px;
+             color: #c9d8d3; }
+.historico span { flex: 1 1 100%; }
+.mensagens { flex: 1; overflow: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.aviso { font-size: 13px; color: #93a9a2; margin: 0; }
+.msg { border-radius: 14px; padding: 12px 14px; max-width: 85%; white-space: pre-wrap; word-break: break-word; }
+.msg.eu { align-self: flex-end; background: #2f7d6d; color: #fff; }
+.msg.recato { align-self: flex-start; background: #0b1c17; }
+/* Tabelas das respostas (texto.js): palavras inteiras nas células e, se não couber, a tabela desliza para o lado. */
+.msg .tabela { overflow-x: auto; margin: 4px 0; white-space: normal; }
+.msg table { border-collapse: collapse; font-size: 14px; }
+.msg th, .msg td { border: 1px solid #2f5d53; padding: 6px 10px; text-align: left; vertical-align: top;
+                   word-break: normal; overflow-wrap: normal; }
+.msg th { background: #10342c; font-weight: 600; }
+.caixa { position: relative; display: flex; gap: 8px; border-top: 1px solid #1e2e2a; padding: 12px 16px 16px;
+         background: #061210; }
+.caixa textarea { flex: 1; min-width: 0; resize: none; font: inherit; padding: 12px; border-radius: 12px;
+                  border: 1px solid #2f5d53; background: #0b1c17; color: #fff; max-height: 40vh; }
+.caixa button { border: 0; border-radius: 12px; padding: 0 16px; background: #2f7d6d; color: #fff; font: inherit; }
+.caixa button:disabled, .caixa textarea:disabled { opacity: 0.5; }
+/* O «Parar» (28/10/2026) fica no lugar do «Enviar» enquanto a resposta vem a caminho. */
+.caixa #parar { background: #8c3b30; }
+/* Na página e na extensão, enquanto responde (28/10/2026): a nota de que se pode fechar o separador (a resposta fica à
+   espera), por cima da caixa e com o fundo dela. */
+.nota-trabalho { margin: 0; padding: 10px 16px 0; border-top: 1px solid #1e2e2a; background: #061210; font-size: 12px;
+                 line-height: 1.4; color: #93a9a2; }
+.nota-trabalho:not([hidden]) + .caixa { border-top: 0; }
+/* Quanto pensa a conversa (como no chat do Recato, 26/10/2026): a pílula «Normal» ou «Máximo», ao lado das imagens e
+   sempre à mão, abre por cima da caixa o menu dos dois níveis. Num ecrã estreito a caixa de texto fica sozinha na
+   1.ª linha e os botões passam para baixo. */
+.nivel { display: flex; }
+.caixa .pilula { display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; background: transparent;
+                 border: 1px solid #2f5d53; color: #93a9a2; font-size: 14px; white-space: nowrap; }
+.caixa .pilula[aria-expanded="true"] { border-color: #3f9c88; }
+.caixa .pilula.ligado { background: rgba(63, 156, 136, 0.24); border-color: #3f9c88; color: #e6f4ef; }
+.pilula.ligado .lampada { color: #f4c860; filter: drop-shadow(0 0 4px rgba(244, 200, 96, 0.55)); }
+.pilula .abrir { opacity: 0.5; }
+.menu-nivel { position: absolute; left: 16px; bottom: calc(100% + 8px); z-index: 2; box-sizing: border-box;
+              width: min(440px, calc(100% - 32px)); display: flex; flex-direction: column; padding: 4px 0;
+              background: #0b1c17; border: 1px solid #2f5d53; border-radius: 12px;
+              box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45); }
+.menu-titulo { margin: 0; padding: 8px 14px 4px; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+               color: #93a9a2; }
+.caixa .menu-nivel button { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border-radius: 0;
+                            background: transparent; color: #dfe9e5; text-align: left; }
+.caixa .menu-nivel button:hover, .caixa .menu-nivel button:focus-visible { background: #10342c; }
+.menu-nivel .certo { flex: 0 0 16px; color: #3f9c88; text-align: center; }
+.menu-nivel [aria-checked="false"] .certo { visibility: hidden; }
+.menu-nivel .rotulo { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.menu-nivel small { font-size: 12px; color: #93a9a2; }
+@media (max-width: 560px) {
+  .caixa { flex-wrap: wrap; }
+  .caixa textarea { order: -1; flex: 1 1 100%; }
+  .caixa .anexar, .caixa .pilula, .caixa #enviar, .caixa #parar { min-height: 44px; }
+  .caixa #enviar, .caixa #parar { margin-left: auto; }
+}
+/* O pedido de uma pesquisa na web, à espera do «sim» da pessoa, e a linha que fica. */
+.pedido-web { align-self: stretch; border: 1px solid #2f5d53; border-radius: 14px; padding: 12px 14px; background: #061210; }
+.pedido-web p { margin: 0 0 8px; }
+.pedido-web .botoes { margin: 8px 0 0; }
+.pedido-titulo { font-weight: 600; color: #e8c27a; }
+.pedido-pergunta { font-weight: 600; }
+.pedido-frase { color: #fff; word-break: break-word; }
+.pedido-web.feito { align-self: flex-start; margin: 0; border: 0; padding: 0; background: none; font-size: 13px; color: #93a9a2;
+                    word-break: break-word; }
+.pedido-web.recusado { color: #c9a27a; }
+.msg a { color: #8fd3c3; }
+.painel { flex: 1; overflow: auto; padding: 16px; }
+.painel h2 { font-size: 18px; margin: 8px 0 12px; }
+.painel p { line-height: 1.45; }
+.botoes { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.botao { border: 0; border-radius: 12px; padding: 12px 16px; background: #2f7d6d; color: #fff; font: inherit; }
+.botao.secundario { background: transparent; border: 1px solid #2f5d53; color: #dfe9e5; }
+.botao.pequeno { padding: 6px 12px; font-size: 13px; border-radius: 10px; }
+.botao:disabled { opacity: 0.5; }
+.botao.perigo { background: #8c3b30; border-color: #8c3b30; color: #fff; }
+.codigo { display: flex; flex-wrap: wrap; justify-content: center; font: 600 20px ui-monospace, monospace;
+          letter-spacing: 1px; padding: 16px 8px; border: 1px dashed #2f5d53; border-radius: 12px; background: #0b1c17;
+          color: #fff; }
+.codigo span { white-space: nowrap; }
+.campo-codigo { box-sizing: border-box; width: 100%; font: 600 16px ui-monospace, monospace; padding: 12px;
+                border-radius: 12px; border: 1px solid #2f5d53; background: #0b1c17; color: #fff; }
+.erro { color: #e08a7a; font-size: 14px; min-height: 1em; }
+.lista { display: flex; flex-direction: column; gap: 8px; }
+.item { display: flex; align-items: center; gap: 8px; border: 1px solid #1e2e2a; border-radius: 12px; padding: 6px 8px; }
+.abrir-conversa { flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0;
+                  background: none; border: 0; color: inherit; font: inherit; text-align: left; padding: 6px; }
+.item-titulo { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.item-data { font-size: 12px; color: #93a9a2; }
+.codigo-novo { margin-top: 28px; padding-top: 16px; border-top: 1px solid #1e2e2a; }
+.codigo-novo .aviso { margin-bottom: 10px; }
+/* As imagens: o botão de as juntar, as que esperam pelo envio e as que vão nas mensagens. */
+.caixa .anexar { padding: 0 12px; background: transparent; border: 1px solid #2f5d53; color: #dfe9e5; }
+.anexos { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 16px 0; background: #061210; border-top: 1px solid #1e2e2a; }
+.anexo { position: relative; }
+.anexo img { display: block; width: 64px; height: 64px; object-fit: cover; border-radius: 10px; border: 1px solid #2f5d53; }
+.anexo .tirar { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; padding: 0; border: 0;
+                border-radius: 50%; background: #8c3b30; color: #fff; font-size: 15px; line-height: 1; }
+/* Os documentos por enviar (27/10/2026): pelo nome, com o «×» como as imagens. */
+.anexo.documento { display: flex; align-items: center; max-width: 220px; height: 40px; padding: 0 14px 0 10px;
+                   border-radius: 10px; border: 1px solid #2f5d53; background: #0b1c17; }
+.anexo.documento .nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px;
+                         color: #dfe9e5; }
+.aviso-anexos { margin: 0; padding: 0 16px; background: #061210; min-height: 0; }
+.aviso-anexos:empty { display: none; }
+.miniaturas { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.miniaturas:last-child { margin-bottom: 0; }
+.miniatura { display: block; max-width: 220px; max-height: 220px; border-radius: 10px; }
+.nao-guardada { font-size: 12px; opacity: 0.8; }
+/* «Não voltar a perguntar nesta conversa» no aviso da pesquisa, e a etiqueta que a desliga. */
+.sempre { display: flex; gap: 10px; align-items: flex-start; margin: 4px 0 10px; padding: 10px 12px; border-radius: 12px;
+          background: #0b1c17; border: 1px solid #2f5d53; font-size: 14px; line-height: 1.35; color: #dfe9e5; }
+.sempre input { width: 20px; height: 20px; margin: 0; accent-color: #2f7d6d; flex: none; }
+.sempre small { display: block; color: #93a9a2; font-size: 12px; margin-top: 2px; }
+.barra-web { display: flex; padding: 8px 16px 0; background: #061210; border-top: 1px solid #1e2e2a; }
+.chip-web { display: inline-flex; align-items: center; gap: 4px; padding: 4px 4px 4px 8px; border-radius: 999px;
+            background: #3b2f12; color: #e8c27a; font-size: 13px; white-space: nowrap; }
+.chip-web button { width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%; background: transparent;
+                   color: inherit; font-size: 16px; line-height: 1; }
+
+/* Os ficheiros feitos na conversa (27/10/2026): um botão por ficheiro, que o descarrega. */
+.ficheiros { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; white-space: normal; }
+/* Os documentos que a pessoa juntou, na mensagem dela (pelo nome). */
+.documentos { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; white-space: normal; }
+.documento { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px;
+             opacity: 0.9; }
+.ficheiro { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 6px 10px;
+            border: 1px solid #2f5d53; border-radius: 10px; background: #061210; color: #dfe9e5; font: inherit;
+            font-size: 13px; cursor: pointer; }
+.ficheiro:disabled { opacity: 0.6; }

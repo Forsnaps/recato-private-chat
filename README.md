@@ -39,6 +39,7 @@ You get exactly the fingerprints published in `manifestos.json` for that version
 
 - `manifestos.json` — every published version, with the SHA-256 fingerprint of each file: the web page, the extension for Chrome/Edge and for Firefox, and the app's screen. A published version never changes.
 - `versoes/<version>.json` — the same, one file per version.
+- `web/<version>/` — the page exactly as privada.recato.ai serves it (from version 1.0.2 on). Recato's server takes it from here, and only after checking each file against `manifestos.json`.
 - `codigo/` — the code: `privada/` (the screen), `extensao/` (the extension) and `scripts/` (build, publication and tests). The code and its comments are in European Portuguese.
 
 ## Licence
@@ -90,6 +91,7 @@ Obténs exatamente as impressões digitais publicadas no `manifestos.json` para 
 
 - `manifestos.json` — todas as versões publicadas, com a impressão digital SHA-256 de cada ficheiro: a página web, a extensão para Chrome/Edge e para Firefox, e o ecrã da app. Uma versão publicada nunca muda.
 - `versoes/<versão>.json` — o mesmo, um ficheiro por versão.
+- `web/<versão>/` — a página exatamente como privada.recato.ai a serve (a partir da versão 1.0.2). O servidor do Recato vai buscá-la aqui, e só depois de conferir cada ficheiro com o `manifestos.json`.
 - `codigo/` — o código: `privada/` (o ecrã), `extensao/` (a extensão) e `scripts/` (compilação, publicação e testes).
 
 ## Licença

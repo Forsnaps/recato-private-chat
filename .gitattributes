@@ -1,0 +1,3 @@
+# A página tem de ficar byte a byte igual às impressões digitais do
+# manifestos.json: o git nunca lhe muda os fins de linha.
+web/** -text
