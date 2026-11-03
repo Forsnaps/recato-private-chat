@@ -6,6 +6,7 @@
 import { aleatorio, b64, de64 } from './cofre.js';
 
 const SESSAO_DO_SEPARADOR = 'privada.sessao';
+const LINGUA_DO_SEPARADOR = 'privada.lingua';
 const BASE = 'recato-privada';
 const LOJA = 'chaves';
 const CHAVE = 'dispositivo';
@@ -27,6 +28,14 @@ export function carteiroValido(endereco) {
     return null;
   }
   return url.origin;
+}
+
+/** Para onde leva o «Voltar ao Recato» (pedido do Pedro, 27/10/2026): as
+ *  conversas normais da conta de onde a pessoa veio (a raiz da conta abre o
+ *  chat). Sem ela — a página aberta sem passar pelo Recato —, o recato.ai,
+ *  que leva quem já entrou neste browser para a sua conta. */
+export function enderecoDoRecato(carteiro) {
+  return `${carteiroValido(carteiro) || 'https://recato.ai'}/`;
 }
 
 function aSessao(dados) {
@@ -54,15 +63,32 @@ export function sessaoDaLigacao(janela = globalThis) {
   return aSessao(JSON.parse(janela.sessionStorage.getItem(SESSAO_DO_SEPARADOR) || 'null'));
 }
 
+/** A língua da conta no Recato de onde a pessoa veio (por exemplo «pt-PT»),
+ *  que vem depois do «#» — na página web com a sessão, na extensão com o
+ *  número dela, na app sozinha — e fica neste separador, para recarregar a
+ *  página; null se não veio nenhuma. Lê-se antes de a sessão tirar a ligação
+ *  (sessaoDaLigacao). */
+export function linguaDaLigacao(janela = globalThis) {
+  const lingua = new URLSearchParams(janela.location.hash.slice(1)).get('lingua');
+  try {
+    if (lingua) janela.sessionStorage.setItem(LINGUA_DO_SEPARADOR, lingua);
+    return lingua || janela.sessionStorage.getItem(LINGUA_DO_SEPARADOR);
+  } catch {
+    return lingua;
+  }
+}
+
 /** Na extensão: o fundo da extensão guardou a sessão (vinda do Recato) com um
- *  número, que vem na ligação do separador. */
+ *  número, que vem na ligação do separador (seguido da língua, se veio:
+ *  «#<número>&lingua=pt-PT»). */
 export async function sessaoDaExtensao(api, janela = globalThis) {
-  const numero = janela.location.hash.slice(1);
+  const numero = janela.location.hash.slice(1).split('&')[0];
   const guardada = numero ? (await api.storage.session.get(numero))[numero] : null;
   return aSessao(guardada);
 }
 
-/** As chaves guardadas no IndexedDB desta origem. */
+/** As chaves guardadas no IndexedDB desta origem, e as respostas à espera
+ *  (espera.js), já cifradas. Também dentro da app. */
 export function armazemIndexedDB(indexedDB = globalThis.indexedDB) {
   const abrirBase = () => new Promise((resolve, reject) => {
     const pedido = indexedDB.open(BASE, 1);
@@ -85,6 +111,8 @@ export function armazemIndexedDB(indexedDB = globalThis.indexedDB) {
   return {
     ler: (nome) => naLoja('readonly', (loja) => loja.get(nome)),
     gravar: (nome, valor) => naLoja('readwrite', (loja) => loja.put(valor, nome)),
+    apagar: (nome) => naLoja('readwrite', (loja) => loja.delete(nome)),
+    nomes: async () => (await naLoja('readonly', (loja) => loja.getAllKeys())).map(String),
   };
 }
 

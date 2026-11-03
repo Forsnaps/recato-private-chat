@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import {
-  abrirComCodigo, cifrar, codigoValido, de64, decifrar, fecharComCodigo, gerarChaveMestra, gerarCodigo,
+  abrirComCodigo, b64, cifrar, codigoValido, de64, decifrar, fecharComCodigo, gerarChaveMestra, gerarCodigo,
   normalizarCodigo,
 } from '../cofre.js';
 
@@ -41,4 +41,13 @@ test('as conversas cifradas só se leem com a chave mestra e não se alteram', a
   estragado[0] ^= 1;
   await assert.rejects(decifrar(mestra, { iv: a.iv, dados: Buffer.from(estragado).toString('base64') }),
     'Um byte mudado é recusado.');
+});
+
+test('cifra e decifra uma conversa grande (com fotografias ou documentos), sem rebentar a pilha', async () => {
+  const mestra = gerarChaveMestra();
+  const grande = { mensagens: [{ papel: 'eu', texto: 'x'.repeat(3 * 1024 * 1024) }] };
+  const cifrada = await cifrar(mestra, grande);
+  assert.deepEqual(await decifrar(mestra, cifrada), grande);
+  const bytes = new Uint8Array(400000).map((_v, i) => i % 256);
+  assert.deepEqual(de64(b64(bytes)), bytes);
 });

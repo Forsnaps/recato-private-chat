@@ -8,6 +8,9 @@
 //    publicada nunca muda: para mudar ficheiros, sobe-se a versão em
 //    privada/package.json.
 // 3. Copia o código desta parte para o repositório público (codigo/).
+// 4. Junta ao LICENSE (MIT) do repositório público a exceção do código do
+//    chat que o ecrã corre (27/10/2026): esse vai com todos os direitos
+//    reservados (termos em privada/licencas.txt).
 //
 // Depois: rever e enviar o repositório público (git commit + push) ANTES de
 // pôr a versão nova em privada.recato.ai — para a extensão já a conhecer.
@@ -24,8 +27,34 @@ const RAIZ = path.join(path.dirname(new URL(import.meta.url).pathname), '..');
 /** O código desta parte, tal como se publica (sem node_modules nem compilados). */
 const CODIGO = [
   'package.json', 'package-lock.json', 'privada', 'extensao', 'scripts/construir_privada.mjs',
-  'scripts/publicar_privada.mjs', 'scripts/testes',
+  'scripts/pacotes_python.mjs', 'scripts/publicar_privada.mjs', 'scripts/testes',
 ];
+
+const MARCA_DA_EXCECAO = `${'-'.repeat(80)}\nExceção / Exception\n`;
+/** O fim do LICENSE do repositório público (decisão do Pedro, 27/10/2026). */
+export const EXCECAO_DA_LICENCA = `${MARCA_DA_EXCECAO}
+A licença MIT acima não se aplica ao código do chat do Recato que a conversa
+privada corre: codigo/privada/python/ (exceto as letras DejaVu de
+codigo/privada/python/letras/, que têm a licença delas) e
+codigo/privada/ficheiros.json. Esses ficheiros são Copyright (c) 2026 Forsnaps
+AI - Soluções Tecnológicas, Unipessoal Lda, com todos os direitos reservados, e
+estão publicados apenas para verificação: os termos estão em
+codigo/privada/licencas.txt.
+
+The MIT License above does not apply to the Recato chat code that the private
+chat runs: codigo/privada/python/ (except the DejaVu fonts in
+codigo/privada/python/letras/, which keep their own licence) and
+codigo/privada/ficheiros.json. Those files are Copyright (c) 2026 Forsnaps AI -
+Soluções Tecnológicas, Unipessoal Lda, with all rights reserved, and are
+published for verification only: the terms are in codigo/privada/licencas.txt.
+`;
+
+/** *licenca* (o texto do LICENSE) com a EXCECAO_DA_LICENCA no fim: uma só vez, e a de agora. */
+export function comAExcecao(licenca) {
+  const inicio = licenca.indexOf(MARCA_DA_EXCECAO);
+  const base = (inicio === -1 ? licenca : licenca.slice(0, inicio)).trimEnd();
+  return base ? `${base}\n\n${EXCECAO_DA_LICENCA}` : EXCECAO_DA_LICENCA;
+}
 
 const temporaria = () => fs.mkdtempSync(path.join(os.tmpdir(), 'privada-publicar-'));
 
@@ -65,7 +94,8 @@ function copiarCodigo(destino) {
   for (const parte of CODIGO) {
     fs.cpSync(path.join(RAIZ, parte), path.join(destino, parte), {
       recursive: true,
-      filter: (origem) => !origem.includes(`${path.sep}node_modules`) && !origem.endsWith('.DS_Store'),
+      filter: (origem) => !origem.includes(`${path.sep}node_modules`) && !origem.endsWith('.DS_Store')
+        && !origem.includes(`${path.sep}__pycache__`),
     });
   }
 }
@@ -82,6 +112,9 @@ export async function publicar({ repositorio, publicacao = 'local', quando = new
       `${JSON.stringify(manifesto, null, 2)}\n`);
   }
   copiarCodigo(path.join(repositorio, 'codigo'));
+  const licenca = path.join(repositorio, 'LICENSE');
+  const atual = fs.existsSync(licenca) ? fs.readFileSync(licenca, 'utf8') : '';
+  if (comAExcecao(atual) !== atual) fs.writeFileSync(licenca, comAExcecao(atual));
   return { versao: manifesto.versao, nova };
 }
 

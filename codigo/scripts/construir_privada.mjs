@@ -22,15 +22,36 @@ import path from 'node:path';
 
 import { build } from 'esbuild';
 
+import { rodasPython } from './pacotes_python.mjs';
+
 const RAIZ = path.join(path.dirname(new URL(import.meta.url).pathname), '..');
 const ECRA = path.join(RAIZ, 'privada');
 const EXTENSAO = path.join(RAIZ, 'extensao');
 const DIST = path.join(RAIZ, 'dist');
 const APP = path.join(RAIZ, 'android', 'app', 'src', 'main', 'assets', 'privada');
+const IPHONE = path.join(RAIZ, 'ios', 'App', 'App', 'privada');
+/** Onde vai o ecrã dentro das apps: no Android e, desde 31/10/2026, no iPhone;
+ *  só as que houver (no repositório público não há nenhuma). */
+const pastasDasApps = () => [[path.join(RAIZ, 'android'), APP], [path.join(RAIZ, 'ios'), IPHONE]]
+  .filter(([projeto]) => fs.existsSync(projeto)).map(([, pasta]) => pasta);
 const WASM = path.join(RAIZ, 'node_modules', 'privatemode-ai', 'dist', 'privatemode.wasm');
+const PYODIDE = path.join(RAIZ, 'node_modules', 'pyodide');
+const LETRAS = path.join(ECRA, 'python', 'letras');
+const PDFJS = path.join(RAIZ, 'node_modules', 'pdfjs-dist');
 
-/** Os ficheiros do ecrã, iguais na app, na página e na extensão. */
+/** Os ficheiros do ecrã, iguais na app, na página e na extensão; mais os do
+ *  Python (27/10/2026: o worker, o Pyodide, as rodas e as letras do PDF, em
+ *  pyodide/), que vêm de compilarEcra (ecra.python). */
 const ECRA_PUBLICADO = ['index.html', 'estilo.css', 'privada.js', 'privatemode.wasm', 'licencas.txt'];
+const doEcra = (ecra) => [...ECRA_PUBLICADO, ...ecra.python, ...ecra.pdfjs];
+/** Do pdf.js (30/10/2026: as páginas digitalizadas dos PDF, paginas.js), em pdfjs/: o worker e os WebAssembly dos
+ *  formatos das digitalizações (JBIG2, JPEG 2000) e das cores (qcms). O worker vai com .js: o nginx da
+ *  privada.recato.ai e a app servem-no como JavaScript (um .mjs ia como dados, e o browser recusa o worker). O da
+ *  versão «legacy», como o de paginas.js. */
+const DO_PDFJS = { 'pdf.worker.min.js': 'legacy/build/pdf.worker.min.mjs', 'jbig2.wasm': 'wasm/jbig2.wasm',
+  'openjpeg.wasm': 'wasm/openjpeg.wasm', 'qcms_bg.wasm': 'wasm/qcms_bg.wasm' };
+/** Os ficheiros do Pyodide que o worker carrega (o resto do pacote npm é para o Node). */
+const DO_PYODIDE = ['pyodide.asm.js', 'pyodide.asm.wasm', 'python_stdlib.zip', 'pyodide-lock.json'];
 
 const sha256 = (dados) => createHash('sha256').update(dados).digest('hex');
 const sri = (dados) => `sha384-${createHash('sha384').update(dados).digest('base64')}`;
@@ -61,6 +82,23 @@ const ESBUILD = {
   write: false,
 };
 
+/** Os módulos Python do ecrã (privada/python/, com as subpastas), {caminho: texto}. */
+export function pythonDoEcra() {
+  const base = path.join(ECRA, 'python');
+  return Object.fromEntries(fs.readdirSync(base, { recursive: true }).filter((nome) => nome.endsWith('.py')).sort()
+    .map((nome) => [nome.split(path.sep).join('/'), fs.readFileSync(path.join(base, nome), 'utf8')]));
+}
+
+/** O módulo «python-do-ecra» do worker: os .py de pythonDoEcra(). */
+const PYTHON_DO_ECRA = {
+  name: 'python-do-ecra',
+  setup(construcao) {
+    construcao.onResolve({ filter: /^python-do-ecra$/ }, () => ({ path: 'python-do-ecra', namespace: 'python-do-ecra' }));
+    construcao.onLoad({ filter: /.*/, namespace: 'python-do-ecra' }, () => ({
+      contents: JSON.stringify(pythonDoEcra()), loader: 'json' }));
+  },
+};
+
 async function compilar(entrada, extra = {}) {
   const resultado = await build({ ...ESBUILD, entryPoints: [entrada], format: 'esm', ...extra });
   return Buffer.from(resultado.outputFiles[0].contents);
@@ -74,6 +112,20 @@ async function compilarEcra(versao) {
     external: ['node:*', 'fs', 'path', 'url', 'crypto', 'worker_threads'],
     define: { __WASM_SHA256__: JSON.stringify(sha256(wasm)) },
   });
+  // O Python (27/10/2026): o worker leva os módulos .py dentro dele, como texto.
+  const trabalhador = await compilar(path.join(ECRA, 'python_trabalhador.js'), {
+    external: ['node:*', 'fs', 'path', 'url', 'crypto', 'worker_threads', 'child_process', 'vm', 'ws'],
+    plugins: [PYTHON_DO_ECRA],
+  });
+  const python = {
+    'python_trabalhador.js': trabalhador,
+    ...Object.fromEntries(DO_PYODIDE.map((nome) => [`pyodide/${nome}`, fs.readFileSync(path.join(PYODIDE, nome))])),
+    ...Object.fromEntries(Object.entries(await rodasPython()).map(([nome, dados]) => [`pyodide/${nome}`, dados])),
+    ...Object.fromEntries(fs.readdirSync(LETRAS).filter((nome) => nome.endsWith('.ttf')).sort()
+      .map((nome) => [`pyodide/letras/${nome}`, fs.readFileSync(path.join(LETRAS, nome))])),
+  };
+  const pdfjs = Object.fromEntries(Object.entries(DO_PDFJS).map(([nome, origem]) => [`pdfjs/${nome}`,
+    fs.readFileSync(path.join(PDFJS, origem))]));
   const estilo = fs.readFileSync(path.join(ECRA, 'estilo.css'));
   const pagina = fs.readFileSync(path.join(ECRA, 'index.html'), 'utf8')
     .replace('{{SRI_PRIVADA}}', sri(privada))
@@ -84,6 +136,10 @@ async function compilarEcra(versao) {
     // As licenças do código de terceiros que vai no ecrã (SDK da Privatemode,
     // wasm_exec.js do Go, SDK da OpenAI) e a nossa.
     'licencas.txt': fs.readFileSync(path.join(ECRA, 'licencas.txt')),
+    ...python,
+    python: Object.keys(python),
+    ...pdfjs,
+    pdfjs: Object.keys(pdfjs),
     versao,
   };
 }
@@ -194,7 +250,7 @@ async function compilarExtensao(navegador, ecra, versao, publicos) {
   for (const icone of fs.readdirSync(path.join(EXTENSAO, 'icones')).sort()) {
     ficheiros[`icones/${icone}`] = fs.readFileSync(path.join(EXTENSAO, 'icones', icone));
   }
-  for (const nome of ECRA_PUBLICADO) {
+  for (const nome of doEcra(ecra)) {
     ficheiros[`privada/${nome}`] = ecra[nome];
   }
   return ficheiros;
@@ -211,25 +267,26 @@ function escrever(pasta, ficheiros) {
 const impressoes = (ficheiros) => Object.fromEntries(Object.keys(ficheiros).sort()
   .map((nome) => [nome, sha256(ficheiros[nome])]));
 
-export async function construir({ publicacao = 'local', dist = DIST, app = true } = {}) {
+export async function construir({ publicacao = 'local', dist = DIST, app = true, pastas = pastasDasApps() } = {}) {
   const versao = JSON.parse(fs.readFileSync(path.join(ECRA, 'package.json'), 'utf8')).version;
   const publicos = enderecosPublicos(publicacao);
   const ecra = await compilarEcra(versao);
-  const doEcra = Object.fromEntries(ECRA_PUBLICADO.map((nome) => [nome, ecra[nome]]));
-  const web = { ...doEcra,
+  const ficheirosDoEcra = Object.fromEntries(doEcra(ecra).map((nome) => [nome, ecra[nome]]));
+  const web = { ...ficheirosDoEcra,
     'confirmar.html': paginaComoConfirmar('confirmar.html', ecra, versao, publicos),
     'confirm.html': paginaComoConfirmar('confirm.html', ecra, versao, publicos),
     'confirmar.css': fs.readFileSync(path.join(ECRA, 'confirmar.css')) };
   const chrome = await compilarExtensao('chrome', ecra, versao, publicos);
   const firefox = await compilarExtensao('firefox', ecra, versao, publicos);
 
-  if (app) escrever(APP, doEcra);
+  // O mesmo ecrã, byte a byte, em cada app (o manifesto diz «assets/privada/», o caminho no Android).
+  if (app) for (const pasta of pastas) escrever(pasta, ficheirosDoEcra);
   escrever(path.join(dist, 'web'), web);
   escrever(path.join(dist, 'extensao-chrome'), chrome);
   escrever(path.join(dist, 'extensao-firefox'), firefox);
   const manifesto = {
     versao,
-    app: impressoes(Object.fromEntries(Object.entries(doEcra).map(([n, d]) => [`assets/privada/${n}`, d]))),
+    app: impressoes(Object.fromEntries(Object.entries(ficheirosDoEcra).map(([n, d]) => [`assets/privada/${n}`, d]))),
     web: impressoes(web),
     extensao: { chrome: impressoes(chrome), firefox: impressoes(firefox) },
   };
@@ -239,8 +296,8 @@ export async function construir({ publicacao = 'local', dist = DIST, app = true 
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const { publicacao, dist } = opcoes(process.argv.slice(2));
-  // No repositório público não há a app Android: compila-se só o resto.
-  const manifesto = await construir({ publicacao, dist, app: fs.existsSync(path.join(RAIZ, 'android')) });
+  // No repositório público não há as apps: compila-se só o resto (pastasDasApps).
+  const manifesto = await construir({ publicacao, dist });
   console.log(`versão ${manifesto.versao} (${publicacao}) → ${path.relative(RAIZ, dist)}/`);
   for (const [nome, impressao] of Object.entries(manifesto.web)) {
     console.log(`${impressao}  web/${nome}`);

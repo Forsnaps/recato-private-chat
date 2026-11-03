@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import {
-  abrirConversa, conferirSeparador, obterVersoes, PAGINA_DA_EXTENSAO, separadorFechado,
+  abrirConversa, conferirSeparador, ficheirosPublicados, obterVersoes, PAGINA_DA_EXTENSAO, separadorFechado,
 } from '../fundo_regras.js';
 
 const h = (c) => c.repeat(64);
@@ -63,6 +63,22 @@ test('abrir: só o Recato da própria conta abre, no mesmo separador, e a sessã
 
   await separadorFechado(api, 41);
   assert.equal(api.sessao.size, 0, 'Fechado o separador, a sessão apagou-se.');
+});
+
+test('abrir: a língua da conta vai na ligação do ecrã, depois do número da sessão', async () => {
+  const api = apiFalsa();
+  const dados = { sessao: 's-1', carteiro: 'https://ana.recato.ai', prazo: 600 };
+  const doRecato = { url: 'https://ana.recato.ai/odoo', tab: { id: 41 } };
+  await abrirConversa(api, { ...dados, lingua: 'pt-PT' }, doRecato, 1_000_000);
+  const [numero, lingua] = api.separadores[0][1].split('#')[1].split('&');
+  assert.equal(lingua, 'lingua=pt-PT');
+  assert.equal(api.sessao.get(numero).sessao, 's-1', 'O número continua a dar a sessão.');
+
+  // Um Recato antigo (sem língua) ou uma coisa que não é uma língua: só o número.
+  for (const outra of [undefined, '', 'pt PT', 'pt-PT&sessao=s-9', 'pt-PT#x', 42]) {
+    await abrirConversa(api, { ...dados, lingua: outra }, doRecato, 1_000_000);
+    assert.equal(api.separadores.at(-1)[1].split('#')[1].includes('&'), false, String(outra));
+  }
 });
 
 test('as versões publicadas vêm do sítio público e guardam-se 10 minutos', async () => {
@@ -150,4 +166,12 @@ test('Firefox: o ícone que o browser pede sozinho não conta; um documento com 
   ouvinte({ url: 'https://privada.recato.ai/favicon.ico', tabId: 5, requestId: 'documento', type: 'main_frame' });
   ouvinte({ url: 'https://privada.recato.ai/outra.png', tabId: 5, requestId: 'imagem', type: 'image' });
   assert.deepEqual(filtrados, ['documento', 'imagem']);
+});
+
+test('os nomes de todos os ficheiros publicados, também os do Python que o worker carrega (27/10/2026)', () => {
+  const versoes = [{ versao: '1.0.1', web: { 'index.html': 'a', 'privada.js': 'b' } },
+    { versao: '1.0.2', web: { 'index.html': 'c', 'pyodide/pyodide.asm.wasm': 'd', 'python_trabalhador.js': 'e' } }];
+  assert.deepEqual(ficheirosPublicados(versoes), ['index.html', 'privada.js', 'pyodide/pyodide.asm.wasm',
+    'python_trabalhador.js']);
+  assert.deepEqual(ficheirosPublicados([]), []);
 });

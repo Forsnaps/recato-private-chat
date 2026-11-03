@@ -7,7 +7,7 @@
 //    resultado no ícone e na própria página.
 import { MANIFESTOS } from './publicacao.js';
 import {
-  abrirConversa, capturarAoPassar, conferirSeparador, obterVersoes, separadorFechado,
+  abrirConversa, capturarAoPassar, conferirSeparador, ficheirosPublicados, obterVersoes, separadorFechado,
 } from './fundo_regras.js';
 
 const api = globalThis.browser || globalThis.chrome;
@@ -27,6 +27,8 @@ api.runtime.onMessage.addListener((pedido, remetente, responder) => {
   } else if (pedido?.tipo === 'conferencia_exata') {
     // No Firefox o fundo já tem os bytes exatos: a página não precisa de os ler.
     resposta = Promise.resolve({ exata: Boolean(api.webRequest?.filterResponseData) });
+  } else if (pedido?.tipo === 'ficheiros_publicados') {
+    resposta = obterVersoes(api, fetch, MANIFESTOS).then(ficheirosPublicados);
   } else if (pedido?.tipo === 'conferir' && remetente.tab) {
     resposta = conferirSeparador(api, remetente.tab.id, pedido,
       () => obterVersoes(api, fetch, MANIFESTOS));

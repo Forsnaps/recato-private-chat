@@ -6,7 +6,7 @@ Open-source code of Recato's private chat: what you write is encrypted on your d
 
 ## How it works
 
-- The private chat screen encrypts each message on your device and sends it, through Recato's server, to a secure enclave run by [Privatemode](https://www.privatemode.ai) — only after checking the enclave's attestation. Recato's server only passes encrypted bytes along.
+- The private chat screen encrypts each message on your device and sends it, through Recato's server, to a secure enclave run by [Privatemode](https://www.privatemode.ai) — only after checking the enclave's attestation. Recato's server only passes encrypted bytes along — except for the web searches you confirm: when the model needs one, the screen warns you that searching makes the chat less private, explains why and shows you the search phrase (or the page address) — you can also allow the searches for the rest of that chat; only that goes, through Recato's server, to the search engine. Images go encrypted like the text and are read by GLM-5.3-Flash, in the same attested Privatemode deployment as GLM-5.3.
 - Saved chats are encrypted with a key that never leaves your device in readable form. On a new device they open only with your recovery code, which Recato does not have.
 - The same files run in three places: inside the Android app, inside the browser extension «Recato — Conversa privada», and on privada.recato.ai. Only the last one is served by Recato on every visit, so it is the one to check.
 
@@ -43,7 +43,7 @@ You get exactly the fingerprints published in `manifestos.json` for that version
 
 ## Licence
 
-MIT — see [LICENSE](LICENSE). Third-party code included in the screen (the Privatemode SDK, Go's `wasm_exec.js`, the OpenAI SDK) keeps its own licences: [`codigo/privada/licencas.txt`](codigo/privada/licencas.txt).
+MIT — see [LICENSE](LICENSE). The exception is the Recato chat code that the screen runs (`codigo/privada/python/`, except the DejaVu fonts, and `codigo/privada/ficheiros.json`): it is published for verification only, with all rights reserved. Third-party code included in the screen (the Privatemode SDK, Go's `wasm_exec.js`, the OpenAI SDK, Pyodide with its Python packages, and pdf.js) keeps its own licences. Everything is in [`codigo/privada/licencas.txt`](codigo/privada/licencas.txt).
 
 ## Security
 
@@ -57,7 +57,7 @@ O código aberto da conversa privada do Recato: o que escreves é cifrado no teu
 
 ## Como funciona
 
-- O ecrã da conversa privada cifra cada mensagem no teu dispositivo e envia-a, pelo servidor do Recato, para uma caixa-forte da [Privatemode](https://www.privatemode.ai) — só depois de verificar a prova (atestação) da caixa-forte. O servidor do Recato só passa bytes cifrados.
+- O ecrã da conversa privada cifra cada mensagem no teu dispositivo e envia-a, pelo servidor do Recato, para uma caixa-forte da [Privatemode](https://www.privatemode.ai) — só depois de verificar a prova (atestação) da caixa-forte. O servidor do Recato só passa bytes cifrados — exceto as pesquisas na web que confirmares: quando o modelo precisa de uma, o ecrã avisa que pesquisar torna a conversa menos privada, explica porquê e mostra-te a frase da pesquisa (ou o endereço da página) — podes também autorizar as pesquisas no resto dessa conversa; só isso segue, pelo servidor do Recato, para o motor de pesquisa. As imagens vão cifradas como o texto e lê-as o GLM-5.3-Flash, na mesma instalação atestada da Privatemode que o GLM-5.3.
 - As conversas guardadas ficam cifradas com uma chave que nunca sai legível do teu dispositivo. Num dispositivo novo, só abrem com o teu código de recuperação, que o Recato não tem.
 - Os mesmos ficheiros correm em três sítios: dentro da app Android, dentro da extensão «Recato — Conversa privada» e em privada.recato.ai. Só este último é enviado pelo Recato em cada visita: é esse que convém confirmar.
 
@@ -94,7 +94,7 @@ Obténs exatamente as impressões digitais publicadas no `manifestos.json` para 
 
 ## Licença
 
-MIT — ver [LICENSE](LICENSE). O código de terceiros que vai no ecrã (o SDK da Privatemode, o `wasm_exec.js` do Go, o SDK da OpenAI) mantém as suas licenças: [`codigo/privada/licencas.txt`](codigo/privada/licencas.txt).
+MIT — ver [LICENSE](LICENSE). A exceção é o código do chat do Recato que o ecrã corre (`codigo/privada/python/`, fora as letras DejaVu, e `codigo/privada/ficheiros.json`): está publicado só para verificação, com todos os direitos reservados. O código de terceiros que vai no ecrã (o SDK da Privatemode, o `wasm_exec.js` do Go, o SDK da OpenAI, o Pyodide com os seus pacotes Python e o pdf.js) mantém as suas licenças. Está tudo em [`codigo/privada/licencas.txt`](codigo/privada/licencas.txt).
 
 ## Segurança
 

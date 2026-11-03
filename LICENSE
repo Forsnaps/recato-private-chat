@@ -19,3 +19,21 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+--------------------------------------------------------------------------------
+Exceção / Exception
+
+A licença MIT acima não se aplica ao código do chat do Recato que a conversa
+privada corre: codigo/privada/python/ (exceto as letras DejaVu de
+codigo/privada/python/letras/, que têm a licença delas) e
+codigo/privada/ficheiros.json. Esses ficheiros são Copyright (c) 2026 Forsnaps
+AI - Soluções Tecnológicas, Unipessoal Lda, com todos os direitos reservados, e
+estão publicados apenas para verificação: os termos estão em
+codigo/privada/licencas.txt.
+
+The MIT License above does not apply to the Recato chat code that the private
+chat runs: codigo/privada/python/ (except the DejaVu fonts in
+codigo/privada/python/letras/, which keep their own licence) and
+codigo/privada/ficheiros.json. Those files are Copyright (c) 2026 Forsnaps AI -
+Soluções Tecnológicas, Unipessoal Lda, with all rights reserved, and are
+published for verification only: the terms are in codigo/privada/licencas.txt.

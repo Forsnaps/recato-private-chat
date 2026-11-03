@@ -1,0 +1,145 @@
+[
+  {
+    "pacote": "typing-extensions",
+    "versao": "4.14.1",
+    "ficheiro": "typing_extensions-4.14.1-py3-none-any.whl",
+    "endereco": "https://cdn.jsdelivr.net/pyodide/v0.28.3/full/typing_extensions-4.14.1-py3-none-any.whl",
+    "sha256": "cacfad0508850d9e87aaa4ba2af8c8fcd392cbb5a3c7ad33e76ab907da34544c",
+    "do_pyodide": true
+  },
+  {
+    "pacote": "lxml",
+    "versao": "6.0.0",
+    "ficheiro": "lxml-6.0.0-cp313-cp313-pyodide_2025_0_wasm32.whl",
+    "endereco": "https://cdn.jsdelivr.net/pyodide/v0.28.3/full/lxml-6.0.0-cp313-cp313-pyodide_2025_0_wasm32.whl",
+    "sha256": "800ea9c7b35a3bb4c027bd74f16bc878aa946825a3f9627c1906f4c0c1c001dd",
+    "do_pyodide": true
+  },
+  {
+    "pacote": "pillow",
+    "versao": "11.3.0",
+    "ficheiro": "pillow-11.3.0-cp313-cp313-pyodide_2025_0_wasm32.whl",
+    "endereco": "https://cdn.jsdelivr.net/pyodide/v0.28.3/full/pillow-11.3.0-cp313-cp313-pyodide_2025_0_wasm32.whl",
+    "sha256": "52984112ca668d60291a7868011a04d66baf526d27e5eaef0a8a16e7ef22ab6c",
+    "do_pyodide": true
+  },
+  {
+    "pacote": "fonttools",
+    "versao": "4.56.0",
+    "ficheiro": "fonttools-4.56.0-py3-none-any.whl",
+    "endereco": "https://cdn.jsdelivr.net/pyodide/v0.28.3/full/fonttools-4.56.0-py3-none-any.whl",
+    "sha256": "862f1298792269b5882f145efc0b2683b5101d30152e43152f2a9ee90e55755a",
+    "do_pyodide": true
+  },
+  {
+    "pacote": "openpyxl",
+    "versao": "3.1.2",
+    "ficheiro": "openpyxl-3.1.2-py2.py3-none-any.whl",
+    "endereco": "https://files.pythonhosted.org/packages/6a/94/a59521de836ef0da54aaf50da6c4da8fb4072fb3053fa71f052fd9399e7a/openpyxl-3.1.2-py2.py3-none-any.whl",
+    "sha256": "f91456ead12ab3c6c2e9491cf33ba6d08357d802192379bb482f1033ade496f5"
+  },
+  {
+    "pacote": "et-xmlfile",
+    "versao": "2.0.0",
+    "ficheiro": "et_xmlfile-2.0.0-py3-none-any.whl",
+    "endereco": "https://files.pythonhosted.org/packages/c1/8b/5fe2cc11fee489817272089c4203e679c63b570a5aaeb18d852ae3cbba6a/et_xmlfile-2.0.0-py3-none-any.whl",
+    "sha256": "7a91720bc756843502c3b7504c77b8fe44217c85c537d85037f0f536151b2caa"
+  },
+  {
+    "pacote": "python-docx",
+    "versao": "1.2.0",
+    "ficheiro": "python_docx-1.2.0-py3-none-any.whl",
+    "endereco": "https://files.pythonhosted.org/packages/d0/00/1e03a4989fa5795da308cd774f05b704ace555a70f9bf9d3be057b680bcf/python_docx-1.2.0-py3-none-any.whl",
+    "sha256": "3fd478f3250fbbbfd3b94fe1e985955737c145627498896a8a6bf81f4baf66c7"
+  },
+  {
+    "pacote": "XlsxWriter",
+    "versao": "3.1.9",
+    "ficheiro": "XlsxWriter-3.1.9-py3-none-any.whl",
+    "endereco": "https://files.pythonhosted.org/packages/f7/3e/05ba2194cd5073602422859c949a4f21310a3c49bf8dccde9e03d4522b11/XlsxWriter-3.1.9-py3-none-any.whl",
+    "sha256": "b61c1a0c786f82644936c0936ec96ee96cd3afb9440094232f7faef9b38689f0"
+  },
+  {
+    "pacote": "python-pptx",
+    "versao": "1.0.2",
+    "ficheiro": "python_pptx-1.0.2-py3-none-any.whl",
+    "endereco": "https://files.pythonhosted.org/packages/d9/4f/00be2196329ebbff56ce564aa94efb0fbc828d00de250b1980de1a34ab49/python_pptx-1.0.2-py3-none-any.whl",
+    "sha256": "160838e0b8565a8b1f67947675886e9fea18aa5e795db7ae531606d68e785cba"
+  },
+  {
+    "pacote": "defusedxml",
+    "versao": "0.7.1",
+    "ficheiro": "defusedxml-0.7.1-py2.py3-none-any.whl",
+    "endereco": "https://files.pythonhosted.org/packages/07/6c/aa3f2f849e01cb6a001cd8554a88d4c77c5c1a31c95bdf1cf9301e6d9ef4/defusedxml-0.7.1-py2.py3-none-any.whl",
+    "sha256": "a352e7e428770286cc899e2542b6cdaedb2b4953ff269a210103ec58f6198a61"
+  },
+  {
+    "pacote": "fpdf2",
+    "versao": "2.8.9",
+    "ficheiro": "fpdf2-2.8.9-py3-none-any.whl",
+    "endereco": "https://files.pythonhosted.org/packages/41/16/42cc18bba1561692a235fd232b38947e54f059150065d43d631b57a0085a/fpdf2-2.8.9-py3-none-any.whl",
+    "sha256": "6e1d94af6d6311950a23dec7fb5fc84b000203eb59aee8e76c1e701b12a14976"
+  },
+  {
+    "pacote": "pycparser",
+    "versao": "2.22",
+    "ficheiro": "pycparser-2.22-py3-none-any.whl",
+    "endereco": "https://cdn.jsdelivr.net/pyodide/v0.28.3/full/pycparser-2.22-py3-none-any.whl",
+    "sha256": "1fa3effa58c117d27ec9723db56e0197866c307fcd61daee4cec636a78f77eee",
+    "grupo": "pdf",
+    "do_pyodide": true
+  },
+  {
+    "pacote": "cffi",
+    "versao": "1.17.1",
+    "ficheiro": "cffi-1.17.1-cp313-cp313-pyodide_2025_0_wasm32.whl",
+    "endereco": "https://cdn.jsdelivr.net/pyodide/v0.28.3/full/cffi-1.17.1-cp313-cp313-pyodide_2025_0_wasm32.whl",
+    "sha256": "06e0410221cf8e0c94af920a242c756deb8353e211feac8306ea199df51a7d94",
+    "grupo": "pdf",
+    "do_pyodide": true
+  },
+  {
+    "pacote": "six",
+    "versao": "1.17.0",
+    "ficheiro": "six-1.17.0-py2.py3-none-any.whl",
+    "endereco": "https://cdn.jsdelivr.net/pyodide/v0.28.3/full/six-1.17.0-py2.py3-none-any.whl",
+    "sha256": "618e0357f1724d937c20b75d691f0ba9e404de2701084e3c4f35995cfb879665",
+    "grupo": "pdf",
+    "do_pyodide": true
+  },
+  {
+    "pacote": "libopenssl",
+    "versao": "1.1.1w",
+    "ficheiro": "libopenssl-1.1.1w.zip",
+    "endereco": "https://cdn.jsdelivr.net/pyodide/v0.28.3/full/libopenssl-1.1.1w.zip",
+    "sha256": "48965994b6ace00d3ebbc2dc1b65c11978582620f4ef6c71a50d9ea4c5fc7437",
+    "grupo": "pdf",
+    "do_pyodide": true
+  },
+  {
+    "pacote": "cryptography",
+    "versao": "45.0.5",
+    "ficheiro": "cryptography-45.0.5-cp313-abi3-pyodide_2025_0_wasm32.whl",
+    "endereco": "https://cdn.jsdelivr.net/pyodide/v0.28.3/full/cryptography-45.0.5-cp313-abi3-pyodide_2025_0_wasm32.whl",
+    "sha256": "207b7e58449b841c2bd6433a37d85b40e619aa6cf37775c5890faca310d5bc15",
+    "grupo": "pdf",
+    "do_pyodide": true
+  },
+  {
+    "pacote": "charset-normalizer",
+    "versao": "3.4.2",
+    "ficheiro": "charset_normalizer-3.4.2-py3-none-any.whl",
+    "endereco": "https://cdn.jsdelivr.net/pyodide/v0.28.3/full/charset_normalizer-3.4.2-py3-none-any.whl",
+    "sha256": "747b3fcff9eefacc2d19c75e7b8926ccebdcb78271a7b821af87eb367c43ccfe",
+    "grupo": "pdf",
+    "do_pyodide": true
+  },
+  {
+    "pacote": "pdfminer.six",
+    "versao": "20260107",
+    "ficheiro": "pdfminer_six-20260107-py3-none-any.whl",
+    "endereco": "https://files.pythonhosted.org/packages/20/8b/28c4eaec9d6b036a52cb44720408f26b1a143ca9bce76cc19e8f5de00ab4/pdfminer_six-20260107-py3-none-any.whl",
+    "sha256": "366585ba97e80dffa8f00cebe303d2f381884d8637af4ce422f1df3ef38111a9",
+    "grupo": "pdf"
+  }
+]

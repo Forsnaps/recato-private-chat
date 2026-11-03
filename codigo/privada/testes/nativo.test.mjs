@@ -5,7 +5,8 @@ import assert from 'node:assert/strict';
 import { beforeEach, test } from 'node:test';
 
 import { aleatorio, b64 } from '../cofre.js';
-import { abrirNoTelemovel, confirmarAPessoa, fecharNoTelemovel, pedirSessao } from '../nativo.js';
+import { abrirNoTelemovel, avisarTrabalho, confirmarAPessoa, fecharNoTelemovel, pedirSessao } from '../nativo.js';
+import { criarPlataforma } from '../plataforma.js';
 
 let pedidos;
 
@@ -64,4 +65,17 @@ test('confirmar que é a pessoa: os textos vão para o telemóvel; desistir ou s
   await assert.rejects(confirmarAPessoa('a', 'b'), (e) => e.codigo === 'cancelada');
   nativo(() => ({ erro: 'sem_bloqueio' }));
   await assert.rejects(confirmarAPessoa('a', 'b'), (e) => e.codigo === 'sem_bloqueio');
+});
+
+test('o trabalho em curso: a app sabe quando a resposta começa e acaba, sem esperar resposta', () => {
+  // 28/10/2026: com a app fechada ou o ecrã desligado a resposta continua (TrabalhoPrivadoServico).
+  const mensagens = [];
+  const janela = { RecatoNativo: { postMessage: (texto) => mensagens.push(JSON.parse(texto)) } };
+  avisarTrabalho(true, janela);
+  avisarTrabalho(false, janela);
+  assert.deepEqual(mensagens, [{ tipo: 'trabalho', a_trabalhar: true }, { tipo: 'trabalho', a_trabalhar: false }]);
+  assert.doesNotThrow(() => avisarTrabalho(true, {}), 'Fora da app não há a quem avisar.');
+  const naApp = criarPlataforma({ ...janela, location: { protocol: 'https:' } });
+  naApp.avisarTrabalho(true);
+  assert.deepEqual(mensagens.at(-1), { tipo: 'trabalho', a_trabalhar: true });
 });

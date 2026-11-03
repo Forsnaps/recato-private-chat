@@ -197,6 +197,32 @@ test('guardar por cima, conversa mexida noutro telemóvel fica como nova, apagar
   assert.deepEqual((await historico.lista()).map((c) => c.id), [2]);
 });
 
+test('o «Máximo» da conversa fica guardado, cifrado com ela', async () => {
+  const { historico, servidor } = await ativado();
+  const ligado = await historico.guardar({ ...conversaNova(), nivelMaximo: true });
+  assert.equal((await historico.abrir(ligado.id)).nivelMaximo, true);
+  const desligado = await historico.guardar({ ...ligado, nivelMaximo: false });
+  assert.equal((await historico.abrir(desligado.id)).nivelMaximo, false);
+  assert.equal((await historico.abrir((await historico.guardar(conversaNova())).id)).nivelMaximo, false,
+    'Conversa nova: níveis de sempre.');
+  const semPerguntar = await historico.guardar({ ...conversaNova(), pesquisaSemPerguntar: true });
+  assert.equal((await historico.abrir(semPerguntar.id)).pesquisaSemPerguntar, true,
+    'A pesquisa sem perguntar volta com a conversa.');
+  assert.equal((await historico.abrir(ligado.id)).pesquisaSemPerguntar, false);
+  assert.ok(!/nivelMaximo|pesquisaSemPerguntar/.test(JSON.stringify(servidor.recebido)), 'Ao servidor só vai cifrado.');
+});
+
+test('as imagens ficam guardadas, cifradas com a conversa; sem texto, o título é uma imagem', async () => {
+  const { historico, servidor } = await ativado();
+  const foto = `data:image/jpeg;base64,${'Q'.repeat(2000)}`;
+  const guardada = await historico.guardar({ id: null, versao: null, mensagens: [
+    { papel: 'eu', texto: '', imagens: [foto] }, { papel: 'recato', texto: 'É uma fatura de 466,79 €.' }] });
+  assert.equal(guardada.titulo, '🖼️');
+  const aberta = await historico.abrir(guardada.id);
+  assert.deepEqual(aberta.mensagens[0].imagens, [foto]);
+  assert.ok(!JSON.stringify(servidor.recebido).includes('QQQQ'), 'Ao servidor só vai cifrado.');
+});
+
 test('código novo: o antigo deixa de abrir, o novo abre, e os telemóveis que já abriam continuam', async () => {
   const { historico, servidor, tel, codigo: antigo } = await ativado();
   await historico.guardar(conversaNova());
@@ -234,4 +260,32 @@ test('código novo com o cofre mexido noutro telemóvel: erro «versao» e nada 
   const terceiro = historicoDe(servidor, telemovelFalso());
   await terceiro.ler();
   assert.equal(await terceiro.abrirComCodigo(codigo), false, 'Vale o código que o outro telemóvel gravou.');
+});
+
+test('com muito texto (o dos documentos anexados), as imagens guardadas encolhem para a conversa caber', async () => {
+  const { historico } = await ativado();
+  const imagem = `data:image/jpeg;base64,${'A'.repeat(1024 * 1024)}`;
+  // Texto ≈1,6 MB: passa ≈1,1 MB da folga, e às imagens sobra ≈1,4 MB.
+  const conversa = { id: null, versao: null, mensagens: [{ papel: 'eu', texto: 'a', imagens: [imagem, imagem],
+    contextoDosAnexos: 'c'.repeat(700000) }, { papel: 'recato', texto: 'b'.repeat(900000) }] };
+  const guardada = await historico.guardar(conversa);
+  const aberta = await historico.abrir(guardada.id);
+  assert.equal(aberta.mensagens[0].imagens.length, 1, 'Sem o texto cabiam as duas; com ele, só a mais recente.');
+  assert.equal(aberta.mensagens[0].imagensNaoGuardadas, 1);
+  assert.equal(aberta.mensagens[0].contextoDosAnexos.length, 700000);
+});
+
+test('os originais dos documentos anexados vão cifrados com a conversa e tiram espaço às imagens', async () => {
+  const { historico, servidor } = await ativado();
+  const imagem = `data:image/jpeg;base64,${'A'.repeat(1024 * 1024)}`;
+  const originais = { 7: btoa('Contrato secreto').padEnd(1024 * 1024, 'A') };
+  const conversa = { id: null, versao: null, ficheiroSeguinte: 7, originais,
+    mensagens: [{ papel: 'eu', texto: 'a', imagens: [imagem, imagem], anexos: [{ id: 7, nome: 'c.docx' }] }] };
+  const aberta = await historico.abrir((await historico.guardar(conversa)).id);
+  assert.deepEqual(aberta.originais, originais);
+  assert.equal(aberta.ficheiroSeguinte, 7);
+  assert.equal(aberta.mensagens[0].imagens.length, 1, 'Com o original, só cabe a imagem mais recente.');
+  assert.ok(!JSON.stringify(servidor.recebido).includes(btoa('Contrato secreto')), 'O original vai cifrado.');
+  assert.deepEqual((await historico.abrir((await historico.guardar({ id: null, versao: null,
+    mensagens: [{ papel: 'eu', texto: 'b' }] })).id)).originais, {});
 });

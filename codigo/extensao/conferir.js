@@ -4,7 +4,7 @@
 // Firefox o fundo já as tirou dos bytes ao passarem, que é exato) —, pede a
 // comparação ao fundo e mostra o resultado na faixa da página da conversa; se
 // não for a publicada, tapa a página com um aviso.
-import { ficheiroDe, sha256 } from './conferencia.js';
+import { ficheiroDe, PAGINA_PRIVADA, sha256 } from './conferencia.js';
 import { textos } from './textos.js';
 
 const api = globalThis.browser || globalThis.chrome;
@@ -19,11 +19,14 @@ async function daCopiaGuardada(endereco) {
   return sha256(await resposta.arrayBuffer());
 }
 
-async function recebidos() {
+/** *alem*: os nomes de mais ficheiros publicados a procurar na cópia guardada
+ *  (os que o worker do Python carregou, que não aparecem na lista da página). */
+async function recebidos(alem = []) {
   const enderecos = new Set([location.href.split('#')[0]]);
   for (const entrada of performance.getEntriesByType('resource')) {
     if (ficheiroDe(entrada.name)) enderecos.add(entrada.name.split('#')[0]);
   }
+  for (const nome of alem) enderecos.add(`${PAGINA_PRIVADA}/${nome}`);
   const impressoes = {};
   for (const endereco of enderecos) {
     try {
@@ -75,14 +78,14 @@ function mostrar(resultado) {
   }
 }
 
-async function conferirAgora() {
+async function conferirAgora(alem = []) {
   // No Firefox o fundo viu os bytes ao passarem; ler aqui a cópia guardada
   // seria outro pedido (e o fundo vê-o também).
   const exata = (await api.runtime.sendMessage({ tipo: 'conferencia_exata' }).catch(() => null))?.exata;
   // O documento aberto (a conversa, «Como confirmar», as licenças) diz que
   // versão é; o resto tem de ser dessa mesma versão.
   const resultado = await api.runtime.sendMessage({
-    tipo: 'conferir', pagina: ficheiroDe(location.href), recebidos: exata ? {} : await recebidos(),
+    tipo: 'conferir', pagina: ficheiroDe(location.href), recebidos: exata ? {} : await recebidos(alem),
     estranhos: await estranhos(),
   }).catch(() => null);
   mostrar(resultado);
@@ -107,3 +110,10 @@ async function iniciar() {
 }
 
 iniciar();
+
+// O Python dos ficheiros (27/10/2026) arranca mais tarde, num worker: quando a
+// página avisa que está pronto, confere-se outra vez, com o que ele carregou.
+document.addEventListener('privada:python', async () => {
+  const nomes = await api.runtime.sendMessage({ tipo: 'ficheiros_publicados' }).catch(() => null);
+  await conferirAgora(Array.isArray(nomes) ? nomes : []);
+});

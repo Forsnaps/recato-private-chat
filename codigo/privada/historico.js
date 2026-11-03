@@ -10,8 +10,13 @@
 import {
   abrirComCodigo, cifrar, decifrar, fecharComCodigo, gerarChaveMestra, gerarCodigo,
 } from './cofre.js';
+import { MAX_BYTES_GUARDADOS, paraGuardar } from './imagens.js';
 
 const MAX_TITULO = 60;
+/** O texto (as mensagens, com o dos documentos anexados) que cabe na conversa
+ *  cifrada sem tirar espaço às imagens: o resto dos ≈3 MB que o servidor
+ *  guarda (4 MB em base64). */
+const FOLGA_DO_TEXTO = 512 * 1024;
 
 export function criarHistorico({ servidor, telemovel, guardados, conta }) {
   let cofre; // {id, embrulhos, versao}; null = sem cofre; undefined = por ler
@@ -45,7 +50,20 @@ export function criarHistorico({ servidor, telemovel, guardados, conta }) {
   }
 
   async function cifrarConversa(conversa) {
-    const corpo = await cifrar(mestra, { v: 1, mensagens: conversa.mensagens });
+    // O nível da conversa («Normal» ou «Máximo») vai cifrado com ela. As
+    // imagens vão cifradas com a conversa, as mais recentes até ao que cabe
+    // (imagens.js) — menos, se o texto passar da folga. Os originais dos
+    // documentos anexados (27/10/2026) que couberem também (anexos.js,
+    // originaisParaGuardar), e tiram esse espaço às imagens.
+    const originais = Object.keys(conversa.originais || {}).length ? conversa.originais : null;
+    const texto = JSON.stringify(conversa.mensagens.map(({ imagens: _i, ...resto }) => resto)).length;
+    const paraAsImagens = MAX_BYTES_GUARDADOS - (originais ? JSON.stringify(originais).length : 0)
+      - Math.max(0, texto - FOLGA_DO_TEXTO);
+    const corpo = await cifrar(mestra, { v: 1,
+      mensagens: paraGuardar(conversa.mensagens, Math.max(0, paraAsImagens)),
+      nivelMaximo: !!conversa.nivelMaximo, pesquisaSemPerguntar: !!conversa.pesquisaSemPerguntar,
+      ...(conversa.ficheiroSeguinte ? { ficheiroSeguinte: conversa.ficheiroSeguinte } : {}),
+      ...(originais ? { originais } : {}) });
     const titulo = await cifrar(mestra, { titulo: conversa.titulo });
     return { iv: corpo.iv, dados: corpo.dados, titulo_iv: titulo.iv, titulo: titulo.dados };
   }
@@ -120,7 +138,9 @@ export function criarHistorico({ servidor, telemovel, guardados, conta }) {
     /** Grava a conversa cifrada; devolve-a com o id e a versão novos. */
     async guardar(conversa) {
       const primeira = conversa.mensagens.find((m) => m.papel === 'eu')?.texto || '';
-      const titulo = conversa.titulo || primeira.replace(/\s+/g, ' ').trim().slice(0, MAX_TITULO);
+      const comImagem = conversa.mensagens.some((m) => m.papel === 'eu' && m.imagens?.length);
+      const titulo = conversa.titulo || primeira.replace(/\s+/g, ' ').trim().slice(0, MAX_TITULO)
+        || (comImagem ? '🖼️' : '');
       const cifrada = await cifrarConversa({ ...conversa, titulo });
       let gravada;
       try {
@@ -145,8 +165,9 @@ export function criarHistorico({ servidor, telemovel, guardados, conta }) {
 
     async abrir(id) {
       const c = await servidor.lerConversa(id);
-      const { mensagens } = await decifrar(mestra, c);
-      return { id: c.id, versao: c.versao, mensagens };
+      const { mensagens, nivelMaximo, pesquisaSemPerguntar, ficheiroSeguinte, originais } = await decifrar(mestra, c);
+      return { id: c.id, versao: c.versao, mensagens, nivelMaximo: !!nivelMaximo,
+        pesquisaSemPerguntar: !!pesquisaSemPerguntar, ficheiroSeguinte: ficheiroSeguinte || 0, originais: originais || {} };
     },
 
     apagar: (id) => servidor.apagarConversa(id),

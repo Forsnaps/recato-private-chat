@@ -12,7 +12,9 @@ window.addEventListener('message', (evento) => {
   if (dados.recato_privada === 'ola') {
     window.postMessage({ recato_privada: 'estou', versao: VERSAO }, location.origin);
   } else if (dados.recato_privada === 'abrir') {
-    api.runtime.sendMessage({ tipo: 'abrir', sessao: dados.sessao, carteiro: dados.carteiro, prazo: dados.prazo })
+    api.runtime.sendMessage({
+      tipo: 'abrir', sessao: dados.sessao, carteiro: dados.carteiro, prazo: dados.prazo, lingua: dados.lingua,
+    })
       .then((r) => r, () => null)
       .then((r) => window.postMessage({ recato_privada: r?.aberta ? 'aberta' : 'recusada' }, location.origin));
   }

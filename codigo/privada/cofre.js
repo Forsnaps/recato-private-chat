@@ -21,7 +21,16 @@ const PBKDF2_VOLTAS = 310000;
 const ALFABETO = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 const LETRAS_DO_CODIGO = 25;
 
-export const b64 = (bytes) => btoa(String.fromCharCode(...new Uint8Array(bytes)));
+/** Bytes → base64. Aos bocados: `String.fromCharCode(...bytes)` de uma vez
+ *  rebenta a pilha a partir de ≈150 KB (medido a 27/10/2026 no Chromium 130:
+ *  «Maximum call stack size exceeded») — uma conversa com uma fotografia, ou
+ *  com documentos, deixava de se guardar. */
+export function b64(bytes) {
+  const lista = new Uint8Array(bytes);
+  let texto = '';
+  for (let i = 0; i < lista.length; i += 0x8000) texto += String.fromCharCode(...lista.subarray(i, i + 0x8000));
+  return btoa(texto);
+}
 export const de64 = (texto) => Uint8Array.from(atob(texto), (c) => c.charCodeAt(0));
 export const aleatorio = (n) => crypto.getRandomValues(new Uint8Array(n));
 

@@ -5,6 +5,8 @@ import { conferir, ficheiroDe, sha256, versoesPublicadas } from './conferencia.j
 
 export const PAGINA_DA_EXTENSAO = 'privada/index.html';
 const MANIFESTOS_VALEM_MS = 10 * 60 * 1000;
+/** Uma língua como «pt-PT» ou «en-GB»; outra coisa não vai para a ligação. */
+const LINGUA = /^[a-z]{2,3}(-[a-z0-9]{1,8})*$/i;
 
 const origemDe = (endereco) => {
   try {
@@ -20,7 +22,9 @@ const origemDe = (endereco) => {
  * ser o da página que pede). A sessão fica só em memória (storage.session:
  * apaga-se ao fechar o browser ou o separador) e o MESMO separador vai para
  * o ecrã que vem DENTRO da extensão — o código não vem do servidor; o
- * «voltar» regressa ao Recato (pedido do Pedro, 23/10/2026).
+ * «voltar» regressa ao Recato (pedido do Pedro, 23/10/2026). A língua da
+ * conta vai na ligação, para o ecrã falar a do Recato e não a do browser
+ * (26/10/2026).
  */
 export async function abrirConversa(api, dados, remetente, agora = Date.now()) {
   const carteiro = carteiroValido(dados?.carteiro);
@@ -37,7 +41,8 @@ export async function abrirConversa(api, dados, remetente, agora = Date.now()) {
     [numero]: { sessao: dados.sessao, carteiro, expira: agora / 1000 + (Number(dados.prazo) || 0) },
     [chave]: numero,
   });
-  await api.tabs.update(separadorId, { url: api.runtime.getURL(`${PAGINA_DA_EXTENSAO}#${numero}`) });
+  const lingua = typeof dados.lingua === 'string' && LINGUA.test(dados.lingua) ? `&lingua=${dados.lingua}` : '';
+  await api.tabs.update(separadorId, { url: api.runtime.getURL(`${PAGINA_DA_EXTENSAO}#${numero}${lingua}`) });
   return { aberta: true };
 }
 
@@ -61,6 +66,11 @@ export async function obterVersoes(api, buscar, url, agora = Date.now()) {
   await api.storage.local.set({ manifestos: { url, quando: agora, versoes } });
   return versoes;
 }
+
+/** Os nomes de todos os ficheiros publicados da página (27/10/2026): os do
+ *  Python (pyodide/…) chegam pelo worker e não aparecem na lista da página
+ *  — a conferência procura-os na cópia que o browser guardou. */
+export const ficheirosPublicados = (versoes) => [...new Set(versoes.flatMap((v) => Object.keys(v.web)))].sort();
 
 const NO_ICONE = {
   conferida: ['✓', '#2f7d6d'],

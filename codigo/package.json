@@ -4,7 +4,7 @@
   "description": "Casca Capacitor (iOS + Android) do Recato — abre https://recato.pt",
   "main": "index.js",
   "scripts": {
-    "test": "node --test privada/testes/ extensao/testes/ scripts/testes/",
+    "test": "node --test privada/testes/*.test.mjs extensao/testes/*.test.mjs scripts/testes/*.test.mjs",
     "privada": "node scripts/construir_privada.mjs"
   },
   "keywords": [],
@@ -17,7 +17,9 @@
     "@capacitor/ios": "^7.6.7",
     "@capacitor/push-notifications": "^7.0.7",
     "openai": "7.42.0",
-    "privatemode-ai": "1.59.0"
+    "pdfjs-dist": "6.4.299",
+    "privatemode-ai": "1.59.0",
+    "pyodide": "0.28.3"
   },
   "devDependencies": {
     "esbuild": "0.25.10"

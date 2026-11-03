@@ -41,3 +41,16 @@ test('os títulos e o negrito ficam como estavam', () => {
   assert.equal(formatar('## Resumo\nO **prazo** é amanhã.\n<b>não</b>'),
     '<strong>Resumo</strong>\nO <strong>prazo</strong> é amanhã.\n&lt;b&gt;não&lt;/b&gt;');
 });
+
+test('as ligações http(s) das «Fontes:» passam a ligação, que abre fora do ecrã', () => {
+  assert.equal(formatar('Fontes: [Diário da República](https://diariodarepublica.pt/dr/x?a=1&b=2), out. 2026'),
+    'Fontes: <a href="https://diariodarepublica.pt/dr/x?a=1&amp;b=2" target="_blank" rel="noopener noreferrer">'
+    + 'Diário da República</a>, out. 2026');
+  assert.ok(formatar('| fonte |\n|---|\n| [gov.pt](https://www.gov.pt) |').includes('<td><a href="https://www.gov.pt"'));
+});
+
+test('ligações que não são http(s), ou que tentam sair do atributo, ficam texto', () => {
+  assert.equal(formatar('[clica](javascript:alert(1))'), '[clica](javascript:alert(1))');
+  assert.equal(formatar('[x](https://a.pt/"onmouseover="alert(1))'), '[x](https://a.pt/"onmouseover="alert(1))');
+  assert.ok(!formatar('[<img src=x>](https://a.pt)').includes('<img'));
+});

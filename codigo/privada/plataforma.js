@@ -13,6 +13,20 @@ export function ondeCorre(janela = globalThis) {
   return 'web';
 }
 
+/** Descarrega *dados* no browser com o *nome*: um Blob local, sem rede. */
+export function descarregarNoBrowser(nome, mime, dados, janela = globalThis) {
+  const documento = janela.document;
+  const endereco = janela.URL.createObjectURL(new janela.Blob([dados], { type: mime || 'application/octet-stream' }));
+  const ligacao = documento.createElement('a');
+  ligacao.href = endereco;
+  ligacao.download = nome;
+  ligacao.rel = 'noopener';
+  documento.body.append(ligacao);
+  ligacao.click();
+  ligacao.remove();
+  janela.setTimeout(() => janela.URL.revokeObjectURL(endereco), 60_000);
+}
+
 export function criarPlataforma(janela = globalThis) {
   const onde = ondeCorre(janela);
   if (onde === 'app') {
@@ -22,6 +36,12 @@ export function criarPlataforma(janela = globalThis) {
       fechar: nativo.fecharNoTelemovel,
       abrir: nativo.abrirNoTelemovel,
       confirmarAPessoa: nativo.confirmarAPessoa,
+      guardarFicheiro: nativo.guardarFicheiro,
+      // A resposta continua com a app fechada ou o ecrã desligado (28/10/2026).
+      avisarTrabalho: (aTrabalhar) => nativo.avisarTrabalho(aTrabalhar, janela),
+      // Uma pesquisa à espera do «sim» da pessoa (decisão do Pedro, 28/10/2026): com a app fechada, a notificação
+      // passa a pedir-lhe que volte.
+      avisarEspera: (aEspera) => nativo.avisarEspera(aEspera, janela),
     };
   }
   const chave = criarChaveDoNavegador();
@@ -34,5 +54,12 @@ export function criarPlataforma(janela = globalThis) {
     abrir: chave.abrir,
     // O código novo pede a impressão digital ou o PIN: por agora, só na app.
     confirmarAPessoa: null,
+    // Um ficheiro feito na conversa descarrega-se pelo browser (27/10/2026).
+    guardarFicheiro: (nome, mime, dados) => descarregarNoBrowser(nome, mime, dados, janela),
+    // Na página web e na extensão, fechar o separador já não acaba com a
+    // resposta (28/10/2026): o servidor guarda-a cifrada e ela fica à espera
+    // de quem volta (espera.js). Não há nada a avisar.
+    avisarTrabalho: null,
+    avisarEspera: null,
   };
 }

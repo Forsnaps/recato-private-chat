@@ -1,14 +1,14 @@
 // Testes do ecrã da conversa privada fora da app (privada/navegador.js e
-// privada/plataforma.js): a sessão da página web e da extensão, e a chave do
-// browser. Correm com: npm test
+// privada/plataforma.js): a sessão da página web e da extensão, a chave do
+// browser e o que o ecrã avisa a meio de uma resposta. Correm com: npm test
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { aleatorio } from '../cofre.js';
 import {
-  carteiroValido, criarChaveDoNavegador, sessaoDaExtensao, sessaoDaLigacao,
+  carteiroValido, criarChaveDoNavegador, enderecoDoRecato, linguaDaLigacao, sessaoDaExtensao, sessaoDaLigacao,
 } from '../navegador.js';
-import { ondeCorre } from '../plataforma.js';
+import { criarPlataforma, ondeCorre } from '../plataforma.js';
 
 /** Uma janela de browser a fingir, com a ligação e o armazenamento do separador. */
 function janela(ligacao) {
@@ -45,6 +45,17 @@ test('só um Recato verdadeiro serve de carteiro', () => {
   }
 });
 
+test('«Voltar ao Recato» leva às conversas normais da conta de onde a pessoa veio', () => {
+  // Pedido do Pedro (27/10/2026). A raiz da conta abre o chat.
+  assert.equal(enderecoDoRecato('https://ana.recato.ai'), 'https://ana.recato.ai/');
+  assert.equal(enderecoDoRecato('https://recato.ai'), 'https://recato.ai/');
+  // Sem conta (a página aberta sem passar pelo Recato) ou com um endereço que não é de um Recato verdadeiro: o
+  // recato.ai, que leva quem já entrou neste browser para a sua conta.
+  for (const semConta of [null, undefined, '', 'https://mau.pt', 'https://privada.recato.ai', 'javascript:alert(1)']) {
+    assert.equal(enderecoDoRecato(semConta), 'https://recato.ai/', String(semConta));
+  }
+});
+
 test('página web: a sessão vem depois do «#», sai logo da ligação e fica no separador', () => {
   const j = janela('https://privada.recato.ai/?x=1#sessao=s-1&carteiro=https%3A%2F%2Fana.recato.ai&prazo=43200');
   const sessao = sessaoDaLigacao(j);
@@ -62,11 +73,40 @@ test('página web: sem sessão, ou com um carteiro que não é o Recato, não ar
   assert.throws(() => sessaoDaLigacao(j), (e) => e.codigo === 'sem_sessao', 'E não ficou guardada.');
 });
 
+test('página web: a língua do Recato vem com a sessão e fica no separador depois de a ligação ser limpa', () => {
+  const j = janela('https://privada.recato.ai/#sessao=s-1&carteiro=https%3A%2F%2Fana.recato.ai&prazo=60&lingua=pt-PT');
+  assert.equal(linguaDaLigacao(j), 'pt-PT');
+  sessaoDaLigacao(j);
+  assert.equal(j.location.hash, '', 'A ligação já foi limpa.');
+  assert.equal(linguaDaLigacao(j), 'pt-PT', 'Recarregar a página: vem do separador.');
+});
+
+test('extensão e app: a língua do Recato vem na ligação, depois do número da sessão ou sozinha', () => {
+  assert.equal(linguaDaLigacao(janela('chrome-extension://abc/privada/index.html#n-1&lingua=pt-PT')), 'pt-PT');
+  assert.equal(linguaDaLigacao(janela('https://appassets.androidplatform.net/assets/privada/index.html#lingua=en-GB')),
+    'en-GB');
+});
+
+test('sem língua na ligação (um Recato ou uma app antigos), fica a do browser', () => {
+  assert.equal(linguaDaLigacao(janela('https://privada.recato.ai/#sessao=s-1&carteiro=https%3A%2F%2Fana.recato.ai')),
+    null);
+  assert.equal(linguaDaLigacao(janela('chrome-extension://abc/privada/index.html#n-1')), null);
+  assert.equal(linguaDaLigacao(janela('https://appassets.androidplatform.net/assets/privada/index.html')), null);
+  const semArmazenamento = janela('https://privada.recato.ai/#sessao=s-1&lingua=en-GB');
+  semArmazenamento.sessionStorage = {
+    getItem() { throw new Error('SecurityError'); },
+    setItem() { throw new Error('SecurityError'); },
+  };
+  assert.equal(linguaDaLigacao(semArmazenamento), 'en-GB', 'Sem armazenamento, vale a da ligação.');
+});
+
 test('extensão: a sessão que o fundo guardou, pelo número da ligação', async () => {
   const api = { storage: { session: { get: async (k) => (k === 'n-1'
     ? { 'n-1': { sessao: 's-2', carteiro: 'https://recato.ai', expira: Date.now() / 1000 + 100 } } : {}) } } };
   const sessao = await sessaoDaExtensao(api, janela('chrome-extension://abc/privada/index.html#n-1'));
   assert.deepEqual([sessao.sessao, sessao.carteiro], ['s-2', 'https://recato.ai']);
+  const comLingua = await sessaoDaExtensao(api, janela('chrome-extension://abc/privada/index.html#n-1&lingua=pt-PT'));
+  assert.equal(comLingua.sessao, 's-2', 'Com a língua depois do número, a mesma sessão.');
   await assert.rejects(sessaoDaExtensao(api, janela('chrome-extension://abc/privada/index.html#n-9')),
     (e) => e.codigo === 'sem_sessao');
 });
@@ -86,6 +126,37 @@ test('a chave do browser: não se exporta, fecha e abre, e a de outro browser n�
   const outroBrowser = criarChaveDoNavegador({ ler: async () => undefined, gravar: async () => {} });
   await outroBrowser.fechar(aleatorio(32));
   await assert.rejects(outroBrowser.abrir(fechada));
+});
+
+/** Uma janela que guarda quem fica à escuta dela. */
+function janelaComEscuta(protocolo, extra = {}) {
+  const aEscuta = [];
+  return { location: { protocol: protocolo }, addEventListener: (tipo) => aEscuta.push(tipo),
+    removeEventListener() {}, aEscuta, ...extra };
+}
+
+test('na página e na extensão, sair a meio de uma resposta já não pergunta nada: ela fica à espera', () => {
+  // Pedido do Pedro (28/10/2026): fechar o separador não interrompe a resposta (espera.js); a pergunta
+  // «Quer mesmo sair?» deixou de fazer falta.
+  for (const protocolo of ['https:', 'chrome-extension:', 'moz-extension:']) {
+    const j = janelaComEscuta(protocolo);
+    const plataforma = criarPlataforma(j);
+    assert.equal(plataforma.avisarTrabalho, null, plataforma.onde);
+    assert.equal(plataforma.avisarEspera, null, plataforma.onde);
+    assert.deepEqual(j.aEscuta, [], `${plataforma.onde}: ninguém fica à escuta de sair`);
+  }
+});
+
+test('na app, o ecrã avisa a parte nativa do trabalho e da pesquisa à espera do «sim» da pessoa', () => {
+  const mensagens = [];
+  const app = janelaComEscuta('https:', { RecatoNativo: { postMessage: (texto) => mensagens.push(JSON.parse(texto)) } });
+  const plataforma = criarPlataforma(app);
+  plataforma.avisarTrabalho(true);
+  plataforma.avisarEspera(true);
+  plataforma.avisarEspera(false);
+  assert.deepEqual(mensagens, [{ tipo: 'trabalho', a_trabalhar: true }, { tipo: 'espera', a_espera: true },
+    { tipo: 'espera', a_espera: false }]);
+  assert.deepEqual(app.aEscuta, []);
 });
 
 test('onde corre o ecrã: app, extensão ou página web', () => {

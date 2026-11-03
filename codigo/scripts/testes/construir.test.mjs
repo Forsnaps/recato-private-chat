@@ -142,3 +142,19 @@ test('produção aponta para o repositório público; sem endereços não se com
     fs.rmSync(dist, { recursive: true, force: true });
   }
 });
+
+test('o mesmo ecrã vai, byte a byte, para dentro da app do Android e da do iPhone', async () => {
+  const [dist, android, iphone] = [temporaria(), temporaria(), temporaria()];
+  const impressoes = (pasta) => Object.fromEntries(fs.readdirSync(pasta, { recursive: true })
+    .filter((nome) => fs.statSync(path.join(pasta, nome)).isFile()).sort()
+    .map((nome) => [nome.split(path.sep).join('/'), sha256(fs.readFileSync(path.join(pasta, nome)))]));
+  try {
+    const manifesto = await construir({ dist, pastas: [android, iphone] });
+    const doAndroid = impressoes(android);
+    assert.deepEqual(impressoes(iphone), doAndroid);
+    assert.deepEqual(Object.fromEntries(Object.entries(doAndroid).map(([nome, h]) => [`assets/privada/${nome}`, h])),
+      manifesto.app);
+  } finally {
+    for (const pasta of [dist, android, iphone]) fs.rmSync(pasta, { recursive: true, force: true });
+  }
+});
