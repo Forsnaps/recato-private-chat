@@ -1,7 +1,9 @@
 // As rotas do Recato que o ecrã da conversa privada usa (fs_chat_autonomo,
 // controllers/privada.py), sempre com a sessão da conversa privada. Tudo o
-// que vai daqui para lá já vai cifrado (cofre.js), exceto o consumo de tokens
-// e as pesquisas na web que a pessoa confirma (só a frase ou o endereço).
+// que vai daqui para lá já vai cifrado (cofre.js), exceto o consumo de tokens,
+// as pesquisas na web que a pessoa confirma (só a frase ou o endereço) e os
+// avisos de uma falha do código do ecrã (falhas.js: só o tipo e o sítio do
+// erro no código e a versão do ecrã, nunca a mensagem nem nada da conversa).
 
 /** As esperas (ms) antes de voltar a dizer o consumo de um pedido que o carteiro ainda não deu por acabado (a
  *  resposta chegou inteira ao ecrã primeiro, 30/10/2026); depois da última, fica a estimativa do servidor. */
@@ -68,5 +70,8 @@ export function criarServidor(carteiro, sessaoAtual, { esperar = (ms) => new Pro
     pararResposta: (numero) => pedir(`/fs_chat/privada/resposta/${numero}/parar`, { metodo: 'POST' }),
     /** O ecrã já tem a resposta: o servidor apaga a cópia. */
     apagarResposta: (numero) => pedir(`/fs_chat/privada/resposta/${numero}/apagar`, { metodo: 'POST' }),
+    /** Uma falha do código do ecrã (04/11/2026, falhas.js): onde, o motivo, a versão e, se houver, o tipo e o sítio
+     *  do erro no código. */
+    avisarFalha: (campos) => pedir('/fs_chat/privada/falha', { metodo: 'POST', corpo: campos }),
   };
 }

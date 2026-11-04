@@ -9,6 +9,10 @@
 // controllers/privada.py). O consumo de tokens também chega cifrado: é este
 // código que o diz ao servidor, para o saldo.
 //
+// Quando o próprio código deste ecrã falha (04/11/2026), diz ao servidor onde
+// e de que tipo foi o erro, e a versão do ecrã, para se corrigir — nunca a
+// mensagem do erro nem nada da conversa (falhas.js).
+//
 // O histórico, se a pessoa o quiser, é cifrado aqui com uma chave que neste
 // telemóvel (ou browser) abre sozinha e, noutro, só com o código de
 // recuperação (historico.js).
@@ -40,6 +44,7 @@ import {
 } from './anexos.js';
 import { b64, codigoValido, de64 } from './cofre.js';
 import { criarEsperas, fluxoGuardado, quandoAVista } from './espera.js';
+import { avisos, eDaRede } from './falhas.js';
 import { REGRAS_DOS_FICHEIROS } from './ficheiros.js';
 import { criarHistorico } from './historico.js';
 import { MAX_IMAGENS_POR_PEDIDO, paraOModelo, prepararImagem } from './imagens.js';
@@ -54,6 +59,9 @@ import { criarPython } from './python.js';
 import { criarServidor } from './servidor.js';
 import { formatar } from './texto.js';
 import { TEXTOS, TEXTOS_DO_BROWSER } from './textos.js';
+
+// Os erros deste ecrã que ninguém apanhar, desde já: saem quando houver sessão (arrancar).
+avisos.escutar();
 
 // Impressão SHA-256 do privatemode.wasm, posta pela compilação
 // (scripts/construir_privada.mjs): o SDK recusa outro ficheiro.
@@ -610,6 +618,7 @@ async function juntarFicheiros(ficheiros) {
     try {
       porEnviar.push(await prepararImagem(ficheiro));
     } catch (e) {
+      avisos.seFalhar('imagens', e);
       $('aviso-anexos').textContent = t(e.codigo === 'nao_e_imagem' ? 'nao_e_imagem' : 'imagem_invalida');
     }
   }
@@ -738,6 +747,7 @@ async function lerOsDocumentos(conversa, m, documentos, caixa, sinal) {
     } catch (e) {
       if (String(e?.status) === '402' || e instanceof RespostaParada || sinal.aborted) throw e;
       // O pdf.js ou o Python falhou: as páginas ficam por ler, com o aviso do chat.
+      avisos.seFalhar('paginas', e);
       lidos.contexto = await lerAsPaginas(lidos, [], comoLer);
     }
     if (sinal.aborted) throw new RespostaParada();
@@ -873,6 +883,7 @@ async function correrResposta(conversa, caixa, { ficheiros, espera, preparar, tr
         // Em ciclo (pesquisa.js, RespostaEmCiclo), o carteiro também para: cortar a leitura não chega, ele
         // continuava a receber e a guardar a resposta até ao teto (30/10/2026: 25 min e 43 MB de «!!!!»).
         if (e?.codigo === 'ciclo') esperaAtual?.parar();
+        avisos.seFalhar('responder', e);
         // Sem recurso: se o Flash (ou o GLM-5.3) falha, a resposta falha.
         caixa.textContent = String(e?.status) === '402' ? t('sem_saldo') : t(bytesImagens ? 'erro_imagens' : 'erro');
       }
@@ -1070,6 +1081,7 @@ async function concluirCodigoNovo() {
       await historico.ler().catch(() => {});
       linha(t('codigo_mudado'));
     } else {
+      avisos.seFalhar('historico_codigo', e);
       linha(t('erro_codigo_novo'));
     }
     return;
@@ -1187,6 +1199,7 @@ async function arrancar() {
   sessao = dados.sessao;
   expira = Date.now() / 1000 + (dados.prazo || 0);
   servidor = criarServidor(dados.carteiro, () => sessao);
+  avisos.ligar((campos) => servidor.avisarFalha(campos));
   cliente = new PrivatemodeAI({
     auth: () => ({ type: 'apiKey', value: sessao }),
     apiBaseURL: dados.carteiro,
@@ -1202,6 +1215,9 @@ async function arrancar() {
   try {
     await cliente.verify();
   } catch (e) {
+    // Sem rede, ou o servidor a recusar, é do ambiente; o resto (a prova da caixa-forte que não confere, um
+    // defeito) tem de chegar a quem mantém o ecrã: sem ela ninguém consegue conversar.
+    if (!eDaRede(e) && e?.status === undefined && navigator.onLine !== false) avisos.avisar('verificar', 'acao', e);
     estado(t('falhou'), 'erro');
     return;
   }

@@ -131,7 +131,9 @@ export function guardarPagina(origem, destino, impressoes) {
   return true;
 }
 
-function copiarCodigo(destino) {
+/** Copia para *destino* o código desta parte, como se publica (codigo/ do repositório público; também o código-fonte
+ *  que vai para a Mozilla com a extensão: scripts/enviar_extensao.mjs). */
+export function copiarCodigo(destino) {
   fs.rmSync(destino, { recursive: true, force: true });
   for (const parte of CODIGO) {
     fs.cpSync(path.join(RAIZ, parte), path.join(destino, parte), {

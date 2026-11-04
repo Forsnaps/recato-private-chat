@@ -110,7 +110,8 @@ async function compilarEcra(versao) {
   const privada = await compilar(path.join(ECRA, 'privada.js'), {
     // Os ramos do SDK para o Node.js nunca correm no browser.
     external: ['node:*', 'fs', 'path', 'url', 'crypto', 'worker_threads'],
-    define: { __WASM_SHA256__: JSON.stringify(sha256(wasm)) },
+    // A versão vai também nos avisos de falha do ecrã (privada/falhas.js).
+    define: { __WASM_SHA256__: JSON.stringify(sha256(wasm)), __VERSAO__: JSON.stringify(versao) },
   });
   // O Python (27/10/2026): o worker leva os módulos .py dentro dele, como texto.
   const trabalhador = await compilar(path.join(ECRA, 'python_trabalhador.js'), {

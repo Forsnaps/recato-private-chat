@@ -22,6 +22,7 @@
 // O que só o ecrã tem: os bytes dos anexos ficam em memória enquanto ele está
 // aberto e, os que couberem, guardados (cifrados) com a conversa; sem eles o
 // modelo sabe que o original já não está para ler nem editar.
+import { avisos } from './falhas.js';
 import DADOS from './ficheiros.json' with { type: 'json' };
 
 /** read_document e edit_document (as do chat, FILE_TOOLS_OPENAI). */
@@ -226,8 +227,9 @@ export async function ferramentaDosAnexos(nome, argumentos, { python, ficheiros 
       anexos: ficheiro ? [{ id, nome: ficheiro.nome, mime: ficheiro.mime }] : [],
       proximo_id: nome === 'edit_document' && ficheiro ? novoId() : null,
     }), ...(ficheiro ? [dados] : []));
-  } catch {
-    // O Python do ecrã falhou: como no chat, o modelo lê só o erro genérico.
+  } catch (e) {
+    // O Python do ecrã falhou: como no chat, o modelo lê só o erro genérico, e a falha vai a quem mantém o ecrã.
+    avisos.seFalhar('anexos', e);
     return { saida: JSON.stringify({ error: 'falha a processar o ficheiro' }) };
   }
 }

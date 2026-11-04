@@ -61,3 +61,12 @@ test('um erro do servidor chega a quem chama com o estado, sem voltar a tentar',
   assert.equal(pedidos.length, 1);
   assert.equal('pedido' in pedidos[0].corpo, false, 'Sem número, o servidor junta-o ao pedido mais antigo.');
 });
+
+test('o aviso de uma falha do ecrã vai com a sessão e só com os códigos (04/11/2026)', async () => {
+  const pedidos = servidorQueResponde([200, { ok: true }]);
+  const servidor = criarServidor('https://acme.recato.ai', () => 'sessao-1');
+  const campos = { onde: 'responder', motivo: 'acao', versao: '1.0.4', tipo: 'TypeError', sitio: 'privada.js:120:7' };
+  assert.deepEqual(await servidor.avisarFalha(campos), { ok: true });
+  assert.deepEqual(pedidos, [{ endereco: 'https://acme.recato.ai/fs_chat/privada/falha', corpo: campos,
+    autorizacao: 'Bearer sessao-1' }]);
+});

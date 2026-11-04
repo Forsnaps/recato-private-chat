@@ -3,6 +3,7 @@
 // (o Python do Pyodide, python.js), para a conversa (pesquisa.js); o ficheiro
 // feito guarda a sua «fonte» (os argumentos do create_file), de onde se volta
 // a fazer para o descarregar.
+import { avisos } from './falhas.js';
 import DADOS from './ficheiros.json' with { type: 'json' };
 
 /** As que fazem ficheiros novos (read_document e edit_document são dos anexos: anexos.js). */
@@ -88,9 +89,10 @@ export async function ficheiroPedido(nome, argumentos, { ficheiros, feitos, ling
     ficheiro.fonte = r.fonte;
     aoFicheiro?.(ficheiro, r.dados);
     return r.saida;
-  } catch {
+  } catch (e) {
     // O Python do ecrã falhou (sem memória, por exemplo): como no chat, o
-    // modelo lê só o erro genérico.
+    // modelo lê só o erro genérico, e a falha vai a quem mantém o ecrã.
+    avisos.seFalhar('ficheiros', e);
     return erroDaFerramenta('falha a processar o ficheiro');
   }
 }
