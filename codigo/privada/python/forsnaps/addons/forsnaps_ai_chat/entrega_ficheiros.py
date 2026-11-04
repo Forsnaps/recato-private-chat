@@ -46,7 +46,14 @@ _NOMES_DE_ANUNCIO = '(?:an[úu]ncios?)'
 _NAO_DEPOIS_DE_DE = '(?<!\\bde )(?<!\\bdo )(?<!\\bda )(?<!\\bdos )(?<!\\bdas )(?<!\\bof )'
 _ARTIGO_DE_MEDIA = '(?:(?:o|a|os|as|um|uma|the|your|an)\\s+)?(?:(?:teu|tua|teus|tuas|seu|sua|seus|suas|nov[oa]s?|new)\\s+)?'
 _ATE_AO_VERBO = '[^.\\n!?:;—–]{0,30}?'
-_ANUNCIO_DE_MEDIA = re.compile('\\baqui\\s+(?:est[áa]|est[ãa]o|tens|tem|vai|v[ãa]o|fica[m]?|segue[m]?)\\s+' + _ARTIGO_DE_MEDIA + '(?P<aqui>' + _NOMES_DE_MEDIA + ')\\b|\\b(?:est[áa]|est[ãa]o|fic(?:a|am|ou|aram))\\s+(?:aqui\\s+)?(?:em baixo|abaixo|pront[oa]s?)\\s+' + _ARTIGO_DE_MEDIA + '(?P<depois>' + _NOMES_DE_MEDIA + ')\\b|' + _NAO_DEPOIS_DE_DE + '\\b(?P<antes>' + _NOMES_DE_MEDIA + ')\\b' + _ATE_AO_VERBO + '\\b(?:est[áa]|est[ãa]o|fic(?:a|am|ou|aram)|segue[m]?)\\s+(?:aqui\\s+)?(?:em baixo|abaixo|pront[oa]s?)(?!\\w)|' + _NAO_DEPOIS_DE_DE + '\\b(?P<anuncio>' + _NOMES_DE_ANUNCIO + ')\\b' + _ATE_AO_VERBO + "\\b(?:est[áa]|est[ãa]o|fic(?:a|am|ou|aram)|segue[m]?)\\s+(?:aqui\\s+)?(?:em baixo|abaixo)(?!\\w)|\\bhere (?:is|are|'s) " + _ARTIGO_DE_MEDIA + '(?P<here>' + _NOMES_DE_MEDIA + ')\\b|' + _NAO_DEPOIS_DE_DE + '\\b(?P<is>' + _NOMES_DE_MEDIA + ')\\b' + _ATE_AO_VERBO + '\\b(?:is|are)\\s+(?:ready|below)\\b', re.I)
+_RESOLUCAO_DE_VIDEO = '(?:full\\s+hd|hd|\\d{3,4}p)'
+_RESOLUCAO = '(?:[124]k|' + _RESOLUCAO_DE_VIDEO + '|qualidade\\s+(?:m[áa]xima|normal))'
+_RESOLUCAO_EN = '(?:[124]k|' + _RESOLUCAO_DE_VIDEO + '|(?:maximum|max|normal|standard)\\s+quality)'
+_JA_FEITO = '(?<!\\bnão )(?<!\\bnao )(?<!\\bnunca )\\b(?:criei|gerei|editei|alterei|retoquei|modifiquei|transformei|adaptei|recriei|redesenhei|montei)(?:-(?:te|lhe|vos))?\\s+'
+_JA_FEITO_EN = "\\b(?:i|we)(?:'ve| have)?\\s+(?:created|generated|edited|altered|retouched|modified|transformed|adapted|recreated|redrew|redesigned)\\s+"
+_ANUNCIO_DE_MEDIA = re.compile('\\baqui\\s+(?:est[áa]|est[ãa]o|tens|tem|vai|v[ãa]o|fica[m]?|segue[m]?)\\s+' + _ARTIGO_DE_MEDIA + '(?P<aqui>' + _NOMES_DE_MEDIA + ')\\b|\\b(?:est[áa]|est[ãa]o|fic(?:a|am|ou|aram))\\s+(?:aqui\\s+)?(?:em baixo|abaixo|pront[oa]s?)\\s+' + _ARTIGO_DE_MEDIA + '(?P<depois>' + _NOMES_DE_MEDIA + ')\\b|' + _NAO_DEPOIS_DE_DE + '\\b(?P<antes>' + _NOMES_DE_MEDIA + ')\\b' + _ATE_AO_VERBO + '\\b(?:est[áa]|est[ãa]o|fic(?:a|am|ou|aram)|segue[m]?)\\s+(?:aqui\\s+)?(?:em baixo|abaixo|pront[oa]s?)(?!\\w)|' + _NAO_DEPOIS_DE_DE + '\\b(?P<anuncio>' + _NOMES_DE_ANUNCIO + ')\\b' + _ATE_AO_VERBO + '\\b(?:est[áa]|est[ãa]o|fic(?:a|am|ou|aram)|segue[m]?)\\s+(?:aqui\\s+)?(?:em baixo|abaixo)(?!\\w)|\\b(?:segue[m]?|est[áa]|est[ãa]o|fica[m]?|vai|v[ãa]o)\\s+(?:aqui\\s+)?(?:em baixo|abaixo),?\\s+(?:em|a|na|com)\\s+(?P<resolucao>' + _RESOLUCAO + ')(?!\\w)|' + _JA_FEITO + _ARTIGO_DE_MEDIA + '(?P<feito>' + _NOMES_DE_MEDIA + ")\\b|\\bhere (?:is|are|'s) " + _ARTIGO_DE_MEDIA + '(?P<here>' + _NOMES_DE_MEDIA + ')\\b|' + _NAO_DEPOIS_DE_DE + '\\b(?P<is>' + _NOMES_DE_MEDIA + ')\\b' + _ATE_AO_VERBO + "\\b(?:is|are)\\s+(?:ready|below)\\b|(?:\\b(?:is|are)|'s|'re)\\s+(?:right\\s+)?below,?\\s+(?:in|at)\\s+(?P<below>" + _RESOLUCAO_EN + ')(?!\\w)|' + _JA_FEITO_EN + _ARTIGO_DE_MEDIA + '(?P<edited>' + _NOMES_DE_MEDIA + ')\\b', re.I)
+_UM_VIDEO = re.compile('\\b(?:' + _NOMES_DE_VIDEO + '|' + _NOMES_DE_ANUNCIO + '|rascunhos?)\\b', re.I)
+_UMA_IMAGEM = re.compile('\\b' + _NOMES_DE_IMAGEM + '\\b', re.I)
 _DE_ANTES = re.compile('\\b(?:anterior(?:es)?|acima|antes(?!\\s+de\\b)|previous|above|earlier)\\b', re.I)
 
 def formatos(texto):
@@ -93,17 +100,27 @@ def _anuncios(texto, padrao):
             yield anuncio
 
 def anuncia_imagem_ou_video(resposta):
+    return {tipo for tipo, _com_nome in _anunciados(resposta)}
+
+def media_em_falta(resposta, entregues):
+    entregues = set(entregues) - {None}
+    return {tipo for tipo, com_nome in _anunciados(resposta) if tipo not in entregues and (com_nome or not entregues)}
+
+def _anunciados(resposta):
     texto = resposta or ''
-    tipos = set()
     for anuncio in _anuncios(texto, _ANUNCIO_DE_MEDIA):
-        if not _ENTREGA_IMEDIATA.match(anuncio.group()):
-            inicio = max((fim.end() for fim in _FIM_DE_FRASE.finditer(texto, 0, anuncio.start())), default=0)
-            fim = _FIM_DE_FRASE.search(texto, anuncio.end())
-            if _DE_ANTES.search(texto, inicio, fim.start() if fim else len(texto)):
-                continue
+        inicio = max((fim.end() for fim in _FIM_DE_FRASE.finditer(texto, 0, anuncio.start())), default=0)
+        fim = _FIM_DE_FRASE.search(texto, anuncio.end())
+        fim = fim.start() if fim else len(texto)
+        if not _ENTREGA_IMEDIATA.match(anuncio.group()) and _DE_ANTES.search(texto, inicio, fim):
+            continue
+        resolucao = anuncio.group('resolucao') or anuncio.group('below')
+        if resolucao:
+            video = re.fullmatch(_RESOLUCAO_DE_VIDEO, resolucao, re.I) or (_UM_VIDEO.search(texto, inicio, fim) and (not _UMA_IMAGEM.search(texto, inicio, fim)))
+            yield ('vídeo' if video else 'imagem', False)
+            continue
         nome = next((grupo for grupo in anuncio.groups() if grupo))
-        tipos.add('vídeo' if re.fullmatch(_NOMES_DE_VIDEO + '|' + _NOMES_DE_ANUNCIO, nome, re.I) else 'imagem')
-    return tipos
+        yield ('vídeo' if re.fullmatch(_NOMES_DE_VIDEO + '|' + _NOMES_DE_ANUNCIO, nome, re.I) else 'imagem', True)
 
 def tipo_de_media(formato):
     if formato in _IMAGENS:
