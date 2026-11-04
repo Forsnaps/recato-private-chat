@@ -99,11 +99,16 @@ test('a entrega confere-se pelas regras do chat: o anúncio de um ficheiro e os 
     'Uma promessa não é uma entrega.');
 });
 
-test('o filtro do ecrã deixa passar todos os anúncios que os testes do chat conhecem (só sem eles não arranca o Python)', () => {
+// O código do chat no servidor. Não vai no repositório público (só esta parte): lá, o teste a seguir salta.
+const CHAT_NO_SERVIDOR = new URL('../../../forsnaps/addons/forsnaps_ai_chat/', import.meta.url);
+
+test('o filtro do ecrã deixa passar todos os anúncios que os testes do chat conhecem (só sem eles não arranca o Python)', {
+  skip: !fs.existsSync(CHAT_NO_SERVIDOR) && 'sem o código do servidor (repositório público)',
+}, () => {
   // Os anúncios verdadeiros do servidor (TestAnuncioEFormatos.ANUNCIA): se lá aparecer um sem nenhuma das palavras de
   // PODE_ANUNCIAR_FICHEIRO, este teste avisa — o ecrã deixaria de o confirmar.
-  py.globals.set('fonte_dos_testes', fs.readFileSync(new URL(
-    '../../../forsnaps/addons/forsnaps_ai_chat/tests/test_ai_chat_entrega_ficheiros.py', import.meta.url), 'utf8'));
+  py.globals.set('fonte_dos_testes', fs.readFileSync(
+    new URL('tests/test_ai_chat_entrega_ficheiros.py', CHAT_NO_SERVIDOR), 'utf8'));
   const anuncios = py.runPython(`
 import ast
 arvore = ast.parse(fonte_dos_testes)
