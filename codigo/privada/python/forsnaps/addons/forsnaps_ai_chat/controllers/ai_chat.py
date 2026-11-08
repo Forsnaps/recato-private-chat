@@ -12,7 +12,7 @@ from forsnaps.exceptions import ValidationError
 from forsnaps.service.model import PG_CONCURRENCY_EXCEPTIONS_TO_RETRY
 from .. import documentos
 from .. import ferramenta_anexos
-from .so_no_ecra import CircuitOpen, _OrcamentoEsgotado, _RespostaCancelada, _VISION_PROVIDERS, _anexo_do_utilizador, _brand_name, _chamada_local, _etapa, _guardar_ficheiro_gerado, _logger, _model_fallbacks, _orcamento_de_leitura, _report_progress, _servido_pela_privatemode, _task_model, _tool_append_to_file, _tool_create_file, _verificar_cancelamento, request
+from .so_no_ecra import CircuitOpen, _OrcamentoEsgotado, _RespostaCancelada, _VISION_PROVIDERS, _anexo_do_utilizador, _brand_name, _chamada_local, _etapa, _guardar_ficheiro_gerado, _logger, _model_fallbacks, _orcamento_de_leitura, _report_progress, _task_model, _tool_append_to_file, _tool_create_file, _verificar_cancelamento, request
 ANEXOS_SEM_FICHA_MAX_CHARS = 250000
 
 def _causa_curta(exc):
@@ -184,7 +184,6 @@ def _execute_file_tool(env, name, args):
         return json.dumps({'error': 'falha a processar o ficheiro'})
 _MAX_MODEL_LEN_DA_PRIVATEMODE = 1048576
 _TETO_DAS_LEITURAS_NA_PRIVATEMODE = _MAX_MODEL_LEN_DA_PRIVATEMODE - 131072
-_TETO_DAS_LEITURAS = 8192
 
 class AiChatController:
 
@@ -436,7 +435,6 @@ class AiChatController:
     def _fichas_dos_anexos(self, provider_key, api_key, contexto, pergunta):
         partes = ferramenta_anexos.partes(contexto, _PARTE_FICHAS_CHARS)
         sistema = _PROMPT_FICHAS.format(brand=_brand_name(request.env), palavras=_palavras_por_ficha(sum((max(1, len(ferramenta_anexos.anexos_do_contexto(parte))) for parte in partes))))
-        self._reasoning_effort = 'low'
         model = _task_model(provider_key, 'fichas')
         orcamento = getattr(_chamada_local, 'orcamento', None)
         fichas = []
@@ -642,8 +640,7 @@ class AiChatController:
         model = _task_model(provider_key, 'vision')
         lidas, partir = ({}, False)
         for candidato in [model] + _model_fallbacks(provider_key, model, task='vision'):
-            teto = _TETO_DAS_LEITURAS_NA_PRIVATEMODE if _servido_pela_privatemode(provider_key, candidato) else _TETO_DAS_LEITURAS
-            _chamada_local.orcamento = dict(orcamento or {}, esforco='high', max_tokens=teto, esforco_na_rota='high', esperar_pelo_limite=True)
+            _chamada_local.orcamento = dict(orcamento or {}, esforco='high', max_tokens=_TETO_DAS_LEITURAS_NA_PRIVATEMODE, esforco_na_rota='high', esperar_pelo_limite=True)
             _chamada_local.resposta_cortada = False
             _chamada_local.motivo_corte = None
             try:

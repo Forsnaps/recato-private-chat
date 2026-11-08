@@ -41,13 +41,6 @@ class _OrcamentoEsgotado(Exception):
         self.lidas = lidas or {}
 
 
-def _servido_pela_privatemode(provider_key, model):
-    """No chat, se o modelo é servido pela Privatemode (as leituras pedem-lhe
-    então o maior teto que ela aceita). No ecrã, a leitura vai sempre à
-    caixa-forte da Privatemode."""
-    return True
-
-
 class CircuitOpen(Exception):
     """No chat, o modelo em pausa (o disjuntor): a leitura das páginas
     digitalizadas não parte esse lote em metades, que falhavam da mesma

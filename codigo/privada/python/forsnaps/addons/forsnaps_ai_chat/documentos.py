@@ -2174,7 +2174,7 @@ def _numero_da_coluna(corpo, decimal, com_espacos):
     return (valor, formato)
 
 def _enfase_da_celula(texto):
-    if not texto.startswith('*'):
+    if not texto.startswith(('*', '_')):
         return None
     trechos = _trechos(texto)
     if len(trechos) != 1:
@@ -2953,21 +2953,21 @@ def _markdown_da_tabela(linhas):
     sep = '|' + '---|' * len(linhas[0])
     corpo = ['| ' + ' | '.join(('' if v is None else str(v) for v in f)) + ' |' for f in linhas[1:]]
     return '\n'.join([cab, sep] + corpo)
-_INLINE_RE = re.compile('(\\*\\*[^*]+\\*\\*|\\*[^*]+\\*|`[^`]+`)')
+_INLINE_RE = re.compile('(\\*\\*[^*]+\\*\\*|\\*[^*]+\\*|`[^`]+`|(?<!\\w)__(?=\\S)[^_\\n]+?(?<=\\S)__(?!\\w)|(?<!\\w)_(?=\\S)[^_\\n]+?(?<=\\S)_(?!\\w))')
 
 def _trechos(texto):
     saida = []
-    for parte in _INLINE_RE.split(texto):
+    for n, parte in enumerate(_INLINE_RE.split(texto)):
         if not parte:
             continue
-        if parte.startswith('**') and parte.endswith('**') and (len(parte) > 4):
-            saida.append((parte[2:-2], True, False, False))
-        elif parte.startswith('`') and parte.endswith('`') and (len(parte) > 2):
-            saida.append((parte[1:-1], False, False, True))
-        elif parte.startswith('*') and parte.endswith('*') and (len(parte) > 2):
-            saida.append((parte[1:-1], False, True, False))
-        else:
+        if n % 2 == 0:
             saida.append((parte, False, False, False))
+        elif parte[:2] in ('**', '__') and len(parte) > 4:
+            saida.append((parte[2:-2], True, False, False))
+        elif parte.startswith('`'):
+            saida.append((parte[1:-1], False, False, True))
+        else:
+            saida.append((parte[1:-1], False, True, False))
     return saida
 
 def _sem_marcas(texto):
