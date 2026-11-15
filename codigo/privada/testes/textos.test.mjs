@@ -72,3 +72,19 @@ test('a autorização vale só para esta conversa, e diz-se', () => {
   assert.match(TEXTOS.voltar_a_perguntar[0], /Voltar a perguntar/);
 });
 
+
+test('quem é: perguntado, diz só que é o Recato, sobre um modelo aberto na caixa-forte, sem a empresa (14/11/2026)', () => {
+  // Sem esta regra o GLM-5.3 dizia «treinado pela Z.ai» (ensaiado a 14/11/2026). As instruções vivem em privada.js,
+  // que só corre no ecrã: lê-se o código.
+  const codigo = readFileSync(new URL('../privada.js', import.meta.url), 'utf8');
+  const sistema = codigo.slice(codigo.indexOf('const SISTEMA = PT'), codigo.indexOf("'not sure.") + 400);
+  const junto = [...sistema.matchAll(/'((?:[^'\\]|\\.)*)'/g)].map((m) => m[1]).join('');
+  for (const frase of ['Se te perguntarem que modelo és, quem te criou ou quem te fez, diz só que és o Recato e que corres '
+    + 'sobre um modelo aberto, dentro da caixa-forte, em servidores na União Europeia; não digas que empresa criou o modelo '
+    + 'nem que empresa o aloja, mesmo que insistam.',
+  'If you are asked which model you are, who created you or who made you, say only that you are Recato and that you run '
+    + 'on an open model, inside the secure enclave, on servers in the European Union; do not say which company created '
+    + 'the model or which company hosts it, even if pressed.']) {
+    assert.ok(junto.includes(frase), frase.slice(0, 40));
+  }
+});

@@ -434,7 +434,7 @@ class AiChatController:
 
     def _fichas_dos_anexos(self, provider_key, api_key, contexto, pergunta):
         partes = ferramenta_anexos.partes(contexto, _PARTE_FICHAS_CHARS)
-        sistema = _PROMPT_FICHAS.format(brand=_brand_name(request.env), palavras=_palavras_por_ficha(sum((max(1, len(ferramenta_anexos.anexos_do_contexto(parte))) for parte in partes))))
+        sistema = _PROMPT_FICHAS.format(brand=_brand_name(request.env), palavras=_palavras_por_ficha(sum((max(1, len(ferramenta_anexos.anexos_do_contexto(parte))) for parte in partes)))) + (getattr(_chamada_local, 'fichas_das_tabelas', None) or '')
         model = _task_model(provider_key, 'fichas')
         orcamento = getattr(_chamada_local, 'orcamento', None)
         fichas = []

@@ -70,3 +70,17 @@ test('o aviso de uma falha do ecrã vai com a sessão e só com os códigos (04/
   assert.deepEqual(pedidos, [{ endereco: 'https://acme.recato.ai/fs_chat/privada/falha', corpo: campos,
     autorizacao: 'Bearer sessao-1' }]);
 });
+
+test('o porquê de um fluxo que acabou sem o fim: pergunta-se pelo número do pedido do carteiro (14/11/2026)', async () => {
+  const pedidos = [];
+  globalThis.fetch = async (endereco, opcoes) => {
+    pedidos.push({ endereco, metodo: opcoes.method, autorizacao: opcoes.headers.Authorization });
+    return { ok: true, status: 200, json: async () => ({ estado: 'cobrado_estimado', corte: 'saldo_em_uso' }) };
+  };
+  const servidor = criarServidor('https://acme.recato.ai', () => 'sessao-1');
+  assert.equal(await servidor.corteDoFluxo({ pedidoDoCarteiro: '41' }), 'saldo_em_uso');
+  assert.deepEqual(pedidos, [{ endereco: 'https://acme.recato.ai/fs_chat/privada/pedido/41', metodo: 'GET',
+    autorizacao: 'Bearer sessao-1' }]);
+  assert.equal(await servidor.corteDoFluxo({}), null, 'sem o número do pedido não se pergunta');
+  assert.equal(pedidos.length, 1);
+});

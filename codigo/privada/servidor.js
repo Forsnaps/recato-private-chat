@@ -46,6 +46,16 @@ export function criarServidor(carteiro, sessaoAtual, { esperar = (ms) => new Pro
       }
       return dito;
     },
+    /** Como acabou o pedido *pedido* ao modelo (o número que o carteiro lhe deu, X-Recato-Pedido): {estado, corte}
+     *  — *corte* 'sem_saldo' ou 'saldo_em_uso' se foi o saldo a cortá-lo a meio (14/11/2026), senão null. */
+    pedido: (pedido) => pedir(`/fs_chat/privada/pedido/${Number(pedido) || 0}`),
+    /** O motivo do corte de *fluxo* pelo saldo, ou null: pergunta-se pelo pedido do carteiro preso a ele (o do SDK ou
+     *  o de uma resposta guardada, espera.js) — o *corte* de responder (pesquisa.js). */
+    async corteDoFluxo(fluxo) {
+      const numero = Number(fluxo?.pedidoDoCarteiro);
+      if (!numero) return null;
+      return (await pedir(`/fs_chat/privada/pedido/${numero}`)).corte || null;
+    },
     /** O texto do resultado de uma pesquisa (web_search) ou página (fetch_page)
      *  que a pessoa confirmou. */
     pesquisar: async (ferramenta, argumentos) => (await pedir('/fs_chat/privada/pesquisa', {

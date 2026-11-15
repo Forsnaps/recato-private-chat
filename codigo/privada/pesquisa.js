@@ -184,6 +184,50 @@ export class RespostaParada extends Error {
   }
 }
 
+// ── o saldo (14/11/2026, fs_chat_autonomo, models/pre_pago.py). Numa conta pré-paga, cada pedido reserva a sua
+// parte do saldo; com o resto todo reservado por outras respostas em curso, o carteiro diz 429 «saldo_em_uso» e
+// o pedido volta a sair sozinho daí a pouco (tentarOutraVez). A meio, sem saldo que chegue, o servidor corta a
+// resposta: o fluxo acaba sem o fim e o ecrã pergunta porquê (a rota do pedido) — a resposta acaba com o que já
+// tinha e a nota, em vez de se voltar a pedir como se fosse a rede.
+
+/** A resposta cortada a meio pelo saldo: *motivo* 'sem_saldo' (acabou) ou 'saldo_em_uso' (o que resta está
+ *  reservado por outras respostas em curso: pede-se «continua» quando acabarem); acaba com o que já tinha escrito
+ *  (*texto*). Não se volta a pedir sozinha. */
+export class RespostaSemSaldo extends Error {
+  constructor(motivo, texto = '') {
+    super(`cortada pelo saldo: ${motivo}`);
+    this.name = 'RespostaSemSaldo';
+    this.codigo = 'sem_saldo_a_meio';
+    this.motivo = motivo === 'saldo_em_uso' ? 'saldo_em_uso' : 'sem_saldo';
+    this.texto = texto;
+  }
+}
+
+/** Se *erro* é o 429 do saldo todo reservado por outras respostas em curso (o corpo do carteiro e da rota do Recato
+ *  Code, {erro: 'saldo_em_uso'}; o cliente da OpenAI põe-no em `error`), e não um 429 do fornecedor. */
+export function eSaldoEmUso(erro) {
+  return Number(erro?.status) === 429
+    && (erro?.error?.erro === 'saldo_em_uso' || erro?.codigo === 'saldo_em_uso' || erro?.erro === 'saldo_em_uso');
+}
+
+/**
+ * A falha *erro* da leitura de um fluxo do carteiro (*fluxo*): se foi o saldo a cortá-lo, RespostaSemSaldo com o
+ * *texto()* que já se tinha escrito; senão o próprio erro. Pergunta-se ao servidor (*corte(fluxo)*, a rota do pedido:
+ * 'sem_saldo', 'saldo_em_uso' ou null) só quando o fluxo acabou sem estado HTTP — o «Parar», um ciclo ou uma recusa
+ * do servidor não. Sem conseguir perguntar, fica o erro (volta a pedir-se, como antes).
+ */
+export async function falhaDoFluxo(erro, fluxo, { corte = null, texto = () => '', sinal = null } = {}) {
+  if (!corte || sinal?.aborted || erro instanceof RespostaParada || erro instanceof RespostaSemSaldo
+    || erro?.codigo === 'ciclo' || Number(erro?.status) > 0) return erro;
+  let motivo = null;
+  try {
+    motivo = await corte(fluxo);
+  } catch {
+    motivo = null;
+  }
+  return motivo ? new RespostaSemSaldo(motivo, texto()) : erro;
+}
+
 /** As esperas (s) antes de cada nova tentativa; da última em diante, sempre a última. */
 export const ESPERAS_S = [2, 5, 10, 30, 60];
 /** Uma falha sem estado HTTP, com rede: pode ser do ecrã e não passar, por isso só estas vezes. */
@@ -194,8 +238,9 @@ export const PRAZO_DAS_TENTATIVAS_S = 30 * 60;
 /** Se vale a pena pedir outra vez depois de *erro* (a *tentativa*-ésima falha, de 0): o servidor ou o fornecedor
  *  em baixo (408, 425, 429, 5xx) e a falta de rede passam; o resto (sem saldo, sessão, pedido recusado) não. */
 export function tentarOutraVez(erro, tentativa, semRede = false) {
-  // Uma resposta em ciclo repetia-se: falha, e a pessoa decide se volta a pedir.
-  if (erro?.codigo === 'ciclo') return false;
+  // Uma resposta em ciclo repetia-se: falha, e a pessoa decide se volta a pedir. Uma cortada pelo saldo acaba com o
+  // que tinha (RespostaSemSaldo): pedida outra vez, pagava-se de novo o que já se tinha lido.
+  if (erro?.codigo === 'ciclo' || erro?.codigo === 'sem_saldo_a_meio') return false;
   const estado = Number(erro?.status);
   if (Number.isInteger(estado) && estado > 0) return estado === 408 || estado === 425 || estado === 429 || estado >= 500;
   return semRede || tentativa < TENTATIVAS_SEM_ESTADO;
@@ -232,7 +277,8 @@ export function esperarComSinal(ms, sinal = null) {
  *
  * - *esperar(ms, sinal)*: a espera entre tentativas (nos testes, sem relógio);
  * - *semRede()*: se o aparelho está sem rede (no browser, `navigator.onLine`);
- * - *aoFalhar(tentativa)*: antes de cada espera, para o ecrã dizer que volta a tentar.
+ * - *aoFalhar(tentativa, erro)*: antes de cada espera, para o ecrã dizer que volta a tentar — e porquê: com o saldo
+ *   reservado por outras respostas (eSaldoEmUso) não é a rede.
  */
 export async function comTentativas(fazer, { sinal = null, esperar = esperarComSinal,
   semRede = () => globalThis.navigator?.onLine === false, aoFalhar = null, texto = () => '' } = {}) {
@@ -247,7 +293,7 @@ export async function comTentativas(fazer, { sinal = null, esperar = esperarComS
       const espera = ESPERAS_S[Math.min(tentativa, ESPERAS_S.length - 1)];
       if (!tentarOutraVez(e, tentativa, semRede()) || esperado + espera > PRAZO_DAS_TENTATIVAS_S) throw e;
       esperado += espera;
-      aoFalhar?.(tentativa + 1);
+      aoFalhar?.(tentativa + 1, e);
       try {
         await esperar(espera * 1000, sinal);
       } catch {
@@ -306,11 +352,15 @@ export function pedidoAoModelo(mensagens, { nivel = NIVEL_NORMAL, ultima = false
  *  e porque acabou (*fim*: «length» se o teto de saída a cortou). O texto e o
  *  raciocínio veem-se de INTERVALO em INTERVALO carateres: em ciclo, o fluxo
  *  para e a resposta falha em RespostaEmCiclo. Os nomes das ferramentas
- *  voltam a ser os nossos (comNomesNossos). */
+ *  voltam a ser os nossos (comNomesNossos). Numa resposta em claro que o
+ *  servidor parou por falta de saldo (o Recato Code com um modelo de fora da
+ *  caixa-forte, 14/11/2026), *corte* traz o motivo do último evento
+ *  (`recato_corte`: 'sem_saldo' ou 'saldo_em_uso'); senão null. */
 export async function lerFluxo(fluxo, aoEscrever) {
   let texto = '';
   let usage = null;
   let fim = null;
+  let corte = null;
   const chamadas = [];
   const pensado = [];
   let pensados = 0;
@@ -352,12 +402,14 @@ export async function lerFluxo(fluxo, aoEscrever) {
     }
     if (pedaco.usage) usage = pedaco.usage;
     fim = pedaco.choices?.[0]?.finish_reason || fim;
+    if (pedaco.recato_corte) corte = pedaco.recato_corte;
   }
   return {
     texto: comNomesNossos(texto),
     chamadas: chamadas.filter(Boolean).map((c) => ({ ...c, function: { ...c.function, name: comNomesNossos(c.function.name) } })),
     usage,
     fim,
+    corte,
   };
 }
 
@@ -438,15 +490,18 @@ async function resultadoDe(chamada, { confirmar, pesquisar }) {
  * - *pedidoDaPessoa*: o que a pessoa escreveu (os formatos que pediu); *jaEntregues*: os ficheiros que a resposta
  *   já tinha feito antes de o ecrã fechar (quem volta continua-a);
  * - *sinal*: o «Parar» da pessoa (AbortSignal), que também vai a *pedir(pedido, sinal)*: a resposta acaba em
- *   RespostaParada, com o texto que já tinha; *esperar*, *semRede* e *aoSemRede(tentativa)*: as novas tentativas de
- *   uma ronda que falhou pela rede ou pelo servidor (comTentativas).
+ *   RespostaParada, com o texto que já tinha; *esperar*, *semRede* e *aoSemRede(tentativa, erro)*: as novas
+ *   tentativas de uma ronda que falhou pela rede ou pelo servidor (comTentativas);
+ * - *corte(fluxo)*: porque parou um fluxo que acabou sem o fim ('sem_saldo', 'saldo_em_uso' ou null — o servidor
+ *   di-lo pela rota do pedido): cortado pelo saldo, a resposta acaba em RespostaSemSaldo, com o texto que já
+ *   tinha, e não se volta a pedir (falhaDoFluxo).
  *
  * Uma resposta que anuncia um ficheiro que não fez (ou sem o formato pedido) tem uma ronda de reparação, como no
  * chat (ficheiros.js); se nem assim, acaba com o texto que o anunciava e o aviso.
  */
 export async function responder({ mensagens, nivel, pedir, confirmar, pesquisar, aoEscrever, aoGastar, ficheiros,
   aoFicheiro, anexos, lingua, aoEtapa, sinal = null, esperar, semRede, aoSemRede, pedidoDaPessoa = '',
-  jaEntregues = [] }) {
+  jaEntregues = [], corte = null }) {
   const conversa = [...mensagens];
   // Os ficheiros desta resposta: o append_to_file só vale para eles.
   const feitos = [];
@@ -482,7 +537,14 @@ export async function responder({ mensagens, nivel, pedir, confirmar, pesquisar,
       comFichas: !!anexos?.comFichas, soFicheiros: !!reparacao });
     const { fluxo, texto, chamadas, usage } = await comTentativas(async () => {
       const resposta = await pedir(pedido, sinal);
-      return { fluxo: resposta, ...(await lerFluxo(resposta, aEscrever)) };
+      let lido;
+      try {
+        lido = await lerFluxo(resposta, aEscrever);
+      } catch (e) {
+        throw await falhaDoFluxo(e, resposta, { corte, texto: () => escrito, sinal });
+      }
+      if (lido.corte) throw new RespostaSemSaldo(lido.corte, escrito);
+      return { fluxo: resposta, ...lido };
     }, tentativas);
     // O número do pedido do carteiro vai com o consumo: com uma resposta a
     // andar noutra conversa, os pedidos deixam de ser um de cada vez. Uma

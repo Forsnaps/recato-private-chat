@@ -45,7 +45,8 @@ _PASSADO = re.compile("\\b(?:criei|gerei|anexei|preparei|elaborei|exportei|conve
 _FIM_DE_FRASE = re.compile('[.!?;](?=\\s)|\\n')
 _NOMES_DE_IMAGEM = '(?:imag(?:em|ens)|fotografias?|fotos?|ilustraç(?:ão|ões)|images?|pictures?|photos?)'
 _NOMES_DE_VIDEO = '(?:v[íi]deos?|videos?)'
-_NOMES_DE_MEDIA = '(?:' + _NOMES_DE_IMAGEM + '|' + _NOMES_DE_VIDEO + ')'
+_NOMES_DE_GRAFICO = '(?:gr[áa]ficos?|charts?|graphs?)'
+_NOMES_DE_MEDIA = '(?:' + _NOMES_DE_IMAGEM + '|' + _NOMES_DE_VIDEO + '|' + _NOMES_DE_GRAFICO + ')'
 _NOMES_DE_ANUNCIO = '(?:an[úu]ncios?)'
 _NAO_DEPOIS_DE_DE = '(?<!\\bde )(?<!\\bdo )(?<!\\bda )(?<!\\bdos )(?<!\\bdas )(?<!\\bof )'
 _ARTIGO_DE_MEDIA = '(?:(?:o|a|os|as|um|uma|the|your|an)\\s+)?(?:(?:teu|tua|teus|tuas|seu|sua|seus|suas|nov[oa]s?|new)\\s+)?'
@@ -106,9 +107,11 @@ def _anuncios(texto, padrao):
 def anuncia_imagem_ou_video(resposta):
     return {tipo for tipo, _com_nome in _anunciados(resposta)}
 
-def media_em_falta(resposta, entregues):
+def media_em_falta(resposta, entregues, graficos=False):
     entregues = set(entregues) - {None}
-    return {tipo for tipo, com_nome in _anunciados(resposta) if tipo not in entregues and (com_nome or not entregues)}
+    if 'imagem' in entregues:
+        entregues.add('gráfico')
+    return {tipo for tipo, com_nome in _anunciados(resposta) if tipo not in entregues and (com_nome or not entregues) and (graficos or tipo != 'gráfico')}
 
 def _anunciados(resposta):
     texto = resposta or ''
@@ -124,7 +127,12 @@ def _anunciados(resposta):
             yield ('vídeo' if video else 'imagem', False)
             continue
         nome = next((grupo for grupo in anuncio.groups() if grupo))
-        yield ('vídeo' if re.fullmatch(_NOMES_DE_VIDEO + '|' + _NOMES_DE_ANUNCIO, nome, re.I) else 'imagem', True)
+        if re.fullmatch(_NOMES_DE_VIDEO + '|' + _NOMES_DE_ANUNCIO, nome, re.I):
+            yield ('vídeo', True)
+        elif re.fullmatch(_NOMES_DE_GRAFICO, nome, re.I):
+            yield ('gráfico', True)
+        else:
+            yield ('imagem', True)
 
 def tipo_de_media(formato):
     if formato in _IMAGENS:

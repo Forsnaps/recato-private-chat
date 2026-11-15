@@ -117,7 +117,9 @@ export function quandoAVista(documento, fazer) {
  * Erros: com o status 404 se o servidor não a tem; com o status da caixa-forte
  * se ela respondeu com erro; com o código 'cortada' se já estava cortada (pede-
  * -se outra vez); RespostaParada se acabou no «Parar» (o deste ecrã ou o de
- * antes de ele fechar).
+ * antes de ele fechar). Cortada pelo saldo (*corte*, 14/11/2026) não se pede
+ * outra vez: lê-se o que chegou, e quem a abre acaba-a com a nota de porquê
+ * (falhaDoFluxo, em pesquisa.js).
  */
 export async function* bytesDaResposta(servidor, numero, { sinal = null, esperar, aoComecar } = {}) {
   let desde = 0;
@@ -128,7 +130,7 @@ export async function* bytesDaResposta(servidor, numero, { sinal = null, esperar
     if (primeira) {
       primeira = false;
       if (lida.estado_http >= 400) throw Object.assign(new Error(`HTTP ${lida.estado_http}`), { status: lida.estado_http });
-      if (lida.estado === 'cortada') throw Object.assign(new Error('cortada'), { codigo: 'cortada' });
+      if (lida.estado === 'cortada' && !lida.corte) throw Object.assign(new Error('cortada'), { codigo: 'cortada' });
       aoComecar?.(lida);
     }
     for (const bocado of lida.bocados) yield de64(bocado);

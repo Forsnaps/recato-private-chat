@@ -24,6 +24,13 @@ export const TEXTOS = {
   fechar_o_separador: ['Podes fechar este separador: a resposta continua e fica à tua espera neste browser.',
                        'You can close this tab: the response carries on and will be waiting for you in this browser.'],
   sem_saldo: ['Não tens saldo para continuar.', 'You have no balance left.'],
+  // O saldo com várias respostas ao mesmo tempo (14/11/2026, as frases do chat do Recato): à espera de que as
+  // outras acabem, e a nota de uma resposta que o saldo cortou a meio (o que já escreveu fica).
+  saldo_em_uso_espera: ['O saldo que resta está a ser usado por outras respostas em curso. Esta continua quando uma terminar…',
+                        'The remaining balance is being used by other replies in progress. This one will carry on when one finishes…'],
+  sem_saldo_a_meio: ['Não consegui terminar: não tens saldo para continuar.', 'I couldn\'t finish: you have no balance left.'],
+  saldo_em_uso_a_meio: ['Não consegui terminar: o saldo que resta está a ser usado por outras respostas em curso. Quando uma terminar, pede «continua».',
+                        'I couldn\'t finish: the remaining balance is being used by other replies in progress. When one finishes, ask me to «continue».'],
   erro: ['A resposta falhou. Tenta outra vez.', 'The answer failed. Please try again.'],
   // Quanto pensa a conversa, «Normal» ou «Máximo» (os textos do chat do Recato, 26/10/2026). Na dica, o %s é a
   // tecla que envia a pensar ao máximo.

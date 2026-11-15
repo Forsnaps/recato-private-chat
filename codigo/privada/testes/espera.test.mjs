@@ -173,3 +173,11 @@ test('a espera só se dá por acabada com o ecrã à vista: escondido (o separad
   documento.dispatchEvent(new Event('visibilitychange'));
   assert.deepEqual(feitos, ['à vista', 'depois'], 'De volta à vista: uma vez só.');
 });
+
+test('cortada pelo saldo (14/11/2026): lê-se o que chegou, e quem volta acaba a resposta com o porquê', async () => {
+  const semEspera = { esperar: async () => {} };
+  const bocados = await todos(bytesDaResposta(servidorCom([{ estado: 'cortada', corte: 'sem_saldo',
+    bocados: [base64('meia')], seguinte: 1 }]), 'n1', semEspera));
+  assert.deepEqual(bocados.map((b) => Buffer.from(b).toString()), ['meia'],
+    'não se pede outra vez: pagava-se de novo o que já se tinha lido');
+});

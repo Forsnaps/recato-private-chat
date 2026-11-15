@@ -11,7 +11,7 @@ import {
   MAX_RONDAS, MAX_TOKENS, MODELO, MODELO_DAS_IMAGENS, NIVEL_MAXIMO, NIVEL_NORMAL, nivelDa, NOMES_PARA_O_MODELO,
   comNomesDoModelo, PRAZO_DAS_TENTATIVAS_S,
   pedidoAoModelo, pedidoDaPesquisa, PESQUISA_FALHADA, PESQUISA_RECUSADA, REGRAS_DA_PESQUISA, responder,
-  RespostaEmCiclo, RespostaParada, TENTATIVAS_SEM_ESTADO, tentarOutraVez,
+  RespostaEmCiclo, RespostaParada, RespostaSemSaldo, TENTATIVAS_SEM_ESTADO, tentarOutraVez, eSaldoEmUso, falhaDoFluxo,
 } from '../pesquisa.js';
 
 const PASTA = new URL('..', import.meta.url).pathname;
@@ -624,4 +624,110 @@ test('a resposta retomada conta os ficheiros de antes de o ecrã fechar; com o P
     pesquisar: async () => '{}', ficheiros: ficheirosFalsos({ falha: true }), pedidoDaPessoa: 'em Word' }),
   'Está pronto o contrato em Word.');
   assert.equal(outro.pedidos.length, 1);
+});
+
+// ── o saldo com várias respostas ao mesmo tempo (14/11/2026) ──────────
+
+/** Um fluxo do carteiro que o servidor cortou a meio: o SDK dá pela falta do fim (a cifra autentica-o). */
+const cortado = (...pedacos) => Object.assign((async function* () {
+  for (const pedaco of pedacos) yield pedaco;
+  throw new Error('oae: unexpected EOF');
+})(), { pedidoDoCarteiro: '41' });
+
+test('cortada a meio pelo saldo: acaba com o que já tinha e o porquê, e não se volta a pedir', async () => {
+  for (const motivo of ['saldo_em_uso', 'sem_saldo']) {
+    const perguntados = [];
+    let pedidos = 0;
+    const erro = await responder({
+      mensagens: [{ role: 'user', content: 'Escreve um texto longo.' }],
+      pedir: async () => {
+        pedidos += 1;
+        return cortado(texto('Era uma vez'), texto(' um texto'));
+      },
+      corte: async (fluxoCortado) => {
+        perguntados.push(fluxoCortado.pedidoDoCarteiro);
+        return motivo;
+      },
+      esperar: async () => { throw new Error('não devia esperar'); },
+      semRede: () => false,
+    }).then(() => null, (e) => e);
+    assert.ok(erro instanceof RespostaSemSaldo, String(erro));
+    assert.equal(erro.motivo, motivo);
+    assert.equal(erro.texto, 'Era uma vez um texto', 'o que a pessoa já via');
+    assert.equal(pedidos, 1, 'pedida outra vez, pagava-se de novo o que já se tinha lido');
+    assert.deepEqual(perguntados, ['41'], 'pergunta-se ao servidor pelo número do pedido do carteiro');
+  }
+});
+
+test('um fluxo que acaba sem o fim e sem corte do saldo volta a pedir-se, como a rede em baixo', async () => {
+  let pedidos = 0;
+  const resposta = await responder({
+    mensagens: [{ role: 'user', content: 'Olá' }],
+    pedir: async () => {
+      pedidos += 1;
+      return pedidos > 1 ? fluxo(texto('Olá!')) : cortado(texto('Ol'));
+    },
+    corte: async () => null,
+    esperar: async () => {},
+    semRede: () => false,
+  });
+  assert.equal(resposta, 'Olá!');
+  assert.equal(pedidos, 2);
+});
+
+test('falhaDoFluxo só pergunta pelo corte quando o fluxo acabou sem estado HTTP; sem resposta do servidor, fica o erro', async () => {
+  const perguntas = [];
+  const corte = async (f) => {
+    perguntas.push(f);
+    return 'sem_saldo';
+  };
+  const semFim = new Error('oae: unexpected EOF');
+  const convertido = await falhaDoFluxo(semFim, { pedidoDoCarteiro: '7' }, { corte, texto: () => 'parcial' });
+  assert.ok(convertido instanceof RespostaSemSaldo);
+  assert.deepEqual([convertido.motivo, convertido.texto], ['sem_saldo', 'parcial']);
+  for (const erro of [new RespostaParada('x'), new RespostaEmCiclo(3), Object.assign(new Error('HTTP 503'), { status: 503 })]) {
+    assert.equal(await falhaDoFluxo(erro, {}, { corte }), erro);
+  }
+  const parado = new AbortController();
+  parado.abort();
+  assert.equal(await falhaDoFluxo(semFim, {}, { corte, sinal: parado.signal }), semFim, 'o «Parar» não pergunta');
+  assert.equal(perguntas.length, 1);
+  assert.equal(await falhaDoFluxo(semFim, {}, { corte: async () => { throw new Error('sem rede'); } }), semFim);
+  assert.equal(await falhaDoFluxo(semFim, {}), semFim, 'sem quem pergunte, fica o erro');
+});
+
+test('o saldo todo reservado por outras respostas (429) espera e volta a pedir; a meio, a RespostaSemSaldo não', () => {
+  const saldoEmUso = Object.assign(new Error('429'), { status: 429, error: { erro: 'saldo_em_uso' } });
+  assert.equal(eSaldoEmUso(saldoEmUso), true, 'o corpo do carteiro, como o cliente da OpenAI o põe em error');
+  assert.equal(eSaldoEmUso({ status: 429, codigo: 'saldo_em_uso' }), true, 'o do servidor.js');
+  assert.equal(eSaldoEmUso({ status: 429, error: { message: 'rate limit' } }), false, 'o 429 do fornecedor não é');
+  assert.equal(eSaldoEmUso({ status: 402, codigo: 'saldo_em_uso' }), false);
+  assert.equal(tentarOutraVez(saldoEmUso, 40), true);
+  assert.equal(tentarOutraVez(new RespostaSemSaldo('saldo_em_uso', 'parcial'), 0), false);
+});
+
+test('à espera do saldo, o ecrã sabe porquê: o aoSemRede recebe o erro', async () => {
+  const avisos = [];
+  let pedidos = 0;
+  const saldoEmUso = Object.assign(new Error('429'), { status: 429, error: { erro: 'saldo_em_uso' } });
+  const resposta = await responder({
+    mensagens: [{ role: 'user', content: 'Olá' }],
+    pedir: async () => {
+      pedidos += 1;
+      if (pedidos === 1) throw saldoEmUso;
+      return fluxo(texto('Olá!'));
+    },
+    esperar: async () => {},
+    semRede: () => false,
+    aoSemRede: (tentativa, erro) => avisos.push([tentativa, eSaldoEmUso(erro)]),
+  });
+  assert.equal(resposta, 'Olá!');
+  assert.deepEqual(avisos, [[1, true]]);
+});
+
+test('lerFluxo traz o porquê de uma resposta em claro que o servidor parou pelo saldo (recato_corte)', async () => {
+  const lido = await lerFluxo(fluxo(texto('Olá'), { choices: [{ index: 0, delta: {}, finish_reason: 'length' }],
+    recato_corte: 'saldo_em_uso' }));
+  assert.deepEqual([lido.texto, lido.fim, lido.corte], ['Olá', 'length', 'saldo_em_uso']);
+  assert.equal((await lerFluxo(fluxo(texto('Olá')))).corte, null);
 });

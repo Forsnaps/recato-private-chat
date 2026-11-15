@@ -51,8 +51,9 @@ import { MAX_IMAGENS_POR_PEDIDO, paraOModelo, prepararImagem } from './imagens.j
 import { desenharPaginas } from './paginas.js';
 import { armazemIndexedDB, enderecoDoRecato, linguaDaLigacao } from './navegador.js';
 import {
-  blocoDaData, comTentativas, confirmacaoDaConversa, desistiuEmBaixo, esperarComSinal, lerFluxo, MODELO,
+  blocoDaData, comTentativas, confirmacaoDaConversa, desistiuEmBaixo, eSaldoEmUso, esperarComSinal, lerFluxo, MODELO,
   MODELO_DAS_IMAGENS, nivelDa, NIVEL_MAXIMO, NIVEL_NORMAL, REGRAS_DA_PESQUISA, responder, RespostaParada,
+  RespostaSemSaldo,
 } from './pesquisa.js';
 import { criarPlataforma } from './plataforma.js';
 import { criarPython } from './python.js';
@@ -89,7 +90,12 @@ const SISTEMA = PT
     + 'pesquisa na web (ver PESQUISA NA WEB), mas '
     + 'cada pesquisa e cada página só saem da caixa-forte depois de o utilizador as confirmar no '
     + 'ecrã: pede só as que fazem falta e, se ele não as autorizar, responde sem elas e di-lo. '
-    + 'Nunca inventes factos, números, leis ou citações; quando não tens certeza, di-lo.'
+    + 'Nunca inventes factos, números, leis ou citações; quando não tens certeza, di-lo. '
+    // Quem é (14/11/2026): sem isto, perguntado, o modelo dizia que empresa o treinou — como no chat do Recato,
+    // diz só que é um modelo aberto, na caixa-forte, na União Europeia.
+    + 'Se te perguntarem que modelo és, quem te criou ou quem te fez, diz só que és o Recato e que corres sobre '
+    + 'um modelo aberto, dentro da caixa-forte, em servidores na União Europeia; não digas que empresa criou o '
+    + 'modelo nem que empresa o aloja, mesmo que insistam.'
   : 'You are Recato, an AI assistant from a Portuguese company, in a private chat: what the user '
     + 'writes is only read inside a verifiable secure enclave. Reply in the user\'s language. Be '
     + 'clear and direct. You can see the images the user adds and read the documents they attach (PDF, Word, '
@@ -99,7 +105,9 @@ const SISTEMA = PT
     + 'NA WEB, in Portuguese), but each search and each page only leaves the secure enclave after the '
     + 'user confirms it on screen: ask only for those you need and, if the user declines, answer '
     + 'without them and say so. Never make up facts, numbers, laws or quotes; say so when you are '
-    + 'not sure.';
+    + 'not sure. If you are asked which model you are, who created you or who made you, say only that you '
+    + 'are Recato and that you run on an open model, inside the secure enclave, on servers in the European '
+    + 'Union; do not say which company created the model or which company hosts it, even if pressed.';
 
 /** As instruções do modelo, com a data e a hora de agora e as regras da
  *  pesquisa na web e dos ficheiros do chat do Recato; numa conversa com anexos
@@ -835,7 +843,10 @@ async function correrResposta(conversa, caixa, { ficheiros, espera, preparar, tr
         nivel: nivelDa(conversa),
         pedir: espera.pedir,
         sinal,
-        aoSemRede: () => mostrar(caixa, t('sem_rede')),
+        // Com o saldo todo reservado por outras respostas (429), não é a rede: diz-se que espera por elas.
+        aoSemRede: (_tentativa, erro) => mostrar(caixa, t(eSaldoEmUso(erro) ? 'saldo_em_uso_espera' : 'sem_rede')),
+        // Um fluxo que acaba sem o fim: o servidor diz se foi o saldo a cortá-lo (14/11/2026).
+        corte: (fluxo) => servidor.corteDoFluxo(fluxo),
         confirmar: confirmacaoDaConversa(conversa, {
           perguntar: (pedido) => confirmarPesquisa(pedido, caixa),
           semPerguntar: (pedido) => linhaSemPerguntar(pedido, caixa),
@@ -877,6 +888,18 @@ async function correrResposta(conversa, caixa, { ficheiros, espera, preparar, tr
         const feitos = [...ficheiros.values()];
         if (feitos.length) caixa.append(el('div', { classe: 'ficheiros' }, ...feitos.map(botaoDoFicheiro)));
         conversa.mensagens.push({ papel: 'recato', texto: parada, ...(feitos.length ? { ficheiros: feitos } : {}) });
+        guardar(conversa);
+      } else if (e instanceof RespostaSemSaldo) {
+        // Cortada a meio pelo saldo (14/11/2026), como no chat do Recato: fica o que já tinha escrito, e os ficheiros
+        // que já fez, com a nota de porquê — o saldo acabou, ou o que resta está reservado por outras respostas em
+        // curso (pede-se «continua» quando acabarem). A pergunta também fica.
+        const parcial = (e.texto || '').trim();
+        const nota = t(e.motivo === 'saldo_em_uso' ? 'saldo_em_uso_a_meio' : 'sem_saldo_a_meio');
+        const cortada = parcial ? `${parcial}\n\n${nota}` : nota;
+        mostrar(caixa, cortada);
+        const feitos = [...ficheiros.values()];
+        if (feitos.length) caixa.append(el('div', { classe: 'ficheiros' }, ...feitos.map(botaoDoFicheiro)));
+        conversa.mensagens.push({ papel: 'recato', texto: cortada, ...(feitos.length ? { ficheiros: feitos } : {}) });
         guardar(conversa);
       } else {
         conversa.mensagens.pop();
