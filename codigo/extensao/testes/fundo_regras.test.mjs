@@ -28,6 +28,7 @@ function apiFalsa() {
     action: {
       setBadgeText: async ({ tabId, text }) => { icone[tabId] = { ...icone[tabId], text }; },
       setBadgeBackgroundColor: async ({ tabId, color }) => { icone[tabId] = { ...icone[tabId], color }; },
+      setBadgeTextColor: async ({ tabId, color }) => { icone[tabId] = { ...icone[tabId], textColor: color }; },
     },
   };
 }
@@ -102,7 +103,7 @@ test('conferir: o ícone e o popup recebem o resultado; o Firefox usa os bytes e
   const versoes = async () => [V1];
   let r = await conferirSeparador(api, 7, { recebidos: { 'index.html': h('a') }, estranhos: [] }, versoes);
   assert.deepEqual(r, { estado: 'conferida', versao: '1.0.0', exato: false });
-  assert.deepEqual(api.icone[7], { text: '✓', color: '#2f7d6d' });
+  assert.deepEqual(api.icone[7], { text: '✓', color: '#f3f3f0', textColor: '#0c0c0c' });
   assert.deepEqual(api.sessao.get('conferencia:7'), r);
 
   // No Firefox, o que o fundo viu passar manda: a página não engana.
@@ -121,6 +122,14 @@ test('conferir: o ícone e o popup recebem o resultado; o Firefox usa os bytes e
   r = await conferirSeparador(api, 10, { pagina: 'confirm.html', recebidos: { 'confirm.html': h('c') }, estranhos: [] },
     async () => [{ versao: '1.0.1', web: { 'index.html': h('a'), 'confirm.html': h('c') } }]);
   assert.deepEqual([r.estado, r.versao, api.icone[10].text], ['conferida', '1.0.1', '✓']);
+});
+
+test('conferir: um browser sem cor para o texto do selo (Chrome antes do 110) fica com o texto branco', async () => {
+  const api = apiFalsa();
+  delete api.action.setBadgeTextColor;
+  const r = await conferirSeparador(api, 7, { recebidos: { 'index.html': h('a') }, estranhos: [] }, async () => [V1]);
+  assert.equal(r.estado, 'conferida');
+  assert.deepEqual(api.icone[7], { text: '✓', color: '#f3f3f0' });
 });
 
 test('Firefox: as impressões digitais dos bytes que passam, mesmo que o write() fique com eles', async () => {

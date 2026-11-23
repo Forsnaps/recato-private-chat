@@ -4,6 +4,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { test } from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import {
   blocoDaData, cicloNoFim, comTentativas, degenerado, desistiuEmBaixo, ESPERAS_S, esperarComSinal, FERRAMENTAS, lerFluxo,
@@ -14,7 +15,7 @@ import {
   RespostaEmCiclo, RespostaParada, RespostaSemSaldo, TENTATIVAS_SEM_ESTADO, tentarOutraVez, eSaldoEmUso, falhaDoFluxo,
 } from '../pesquisa.js';
 
-const PASTA = new URL('..', import.meta.url).pathname;
+const PASTA = fileURLToPath(new URL('..', import.meta.url));
 
 /** Um fluxo de streaming do SDK com estes pedaços. */
 async function* fluxo(...pedacos) {

@@ -1,9 +1,11 @@
 // A conversa com a parte nativa da app (ConversaPrivadaActivity): a sessão da
-// conversa privada, a chave do chip de segurança do telemóvel, que fecha a
-// cópia da chave mestra guardada neste telemóvel, e a confirmação de que é a
-// pessoa (antes de um código novo). A chave do chip nunca sai de lá e só esta
-// app a pode usar; daqui só vão os bytes a fechar ou a abrir.
-import { b64, de64 } from './cofre.js';
+// conversa privada e a chave do chip de segurança do telemóvel, que fecha a
+// chave das respostas à espera guardada neste telemóvel (espera.js). A chave
+// do chip nunca sai de lá e só esta app a pode usar; daqui só vão os bytes a
+// fechar ou a abrir. Até 19/11/2026 fechava também a cópia da chave do
+// histórico, e a app confirmava que era a pessoa antes de um código de
+// recuperação novo (confirmarAPessoa): o histórico saiu nesse dia.
+import { b64, de64 } from './bytes.js';
 
 const pendentes = new Map();
 let proximo = 1;
@@ -63,14 +65,3 @@ export function avisarEspera(aEspera, janela = globalThis) {
   janela.RecatoNativo?.postMessage(JSON.stringify({ tipo: 'espera', a_espera: !!aEspera }));
 }
 
-/** Pede ao telemóvel que confirme que é a pessoa (impressão digital, rosto
- *  ou o PIN do ecrã), com estes textos. Erro 'cancelada' se ela desistir e
- *  'sem_bloqueio' se o telemóvel não tiver bloqueio de ecrã. */
-export async function confirmarAPessoa(titulo, subtitulo) {
-  const r = await pedir({ tipo: 'confirmar_pessoa', titulo, subtitulo });
-  if (r.erro) {
-    const erro = new Error(r.erro);
-    erro.codigo = r.erro;
-    throw erro;
-  }
-}

@@ -19,12 +19,13 @@
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { build } from 'esbuild';
 
 import { rodasPython } from './pacotes_python.mjs';
 
-const RAIZ = path.join(path.dirname(new URL(import.meta.url).pathname), '..');
+const RAIZ = fileURLToPath(new URL('..', import.meta.url));
 const ECRA = path.join(RAIZ, 'privada');
 const EXTENSAO = path.join(RAIZ, 'extensao');
 const DIST = path.join(RAIZ, 'dist');
@@ -295,7 +296,7 @@ export async function construir({ publicacao = 'local', dist = DIST, app = true,
   return manifesto;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const { publicacao, dist } = opcoes(process.argv.slice(2));
   // No repositório público não há as apps: compila-se só o resto (pastasDasApps).
   const manifesto = await construir({ publicacao, dist });

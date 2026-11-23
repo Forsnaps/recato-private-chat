@@ -35,8 +35,9 @@ export const REGRA_DAS_FICHAS = DADOS.anexos.regra;
 /** Os limites do chat: anexos por mensagem, o tamanho a partir do qual se
  *  fazem fichas e o máximo que vai inteiro sem elas. */
 export const LIMITES_DOS_ANEXOS = DADOS.anexos.limites;
-/** O que dos originais se guarda com a conversa (em base64): os mais
- *  recentes até aqui; os outros ficam só enquanto o ecrã está aberto. */
+/** O que dos originais se guarda com uma resposta à espera (em base64,
+ *  espera.js): os mais recentes até aqui; os outros ficam só enquanto o ecrã
+ *  está aberto. Até 19/11/2026 iam também com a conversa guardada. */
 export const MAX_ORIGINAIS_GUARDADOS = 1024 * 1024;
 /** O teto de saída de uma leitura das fichas (o de uma resposta do chat). */
 export const MAX_TOKENS_DAS_FICHAS = DADOS.limites.MAX_TOKENS_CHAT;
@@ -266,9 +267,9 @@ export async function fazerFichas(contexto, pergunta, { python, chamar, etapa, l
 }
 
 /**
- * Os originais a guardar com a conversa ({id: base64}): os mais recentes até
- * *maximo*; os outros só ficam em memória. *bytes(id)*: os bytes de um
- * anexo (Uint8Array), ou o base64 de quando já estava guardado, ou null.
+ * Os originais a guardar com uma resposta à espera ({id: base64}): os mais
+ * recentes até *maximo*; os outros só ficam em memória. *bytes(id)*: os bytes
+ * de um anexo (Uint8Array), ou o base64 de quando já estava guardado, ou null.
  */
 export function originaisParaGuardar(mensagens, bytes, maximo = MAX_ORIGINAIS_GUARDADOS) {
   const guardados = {};

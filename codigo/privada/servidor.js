@@ -1,6 +1,7 @@
 // As rotas do Recato que o ecrã da conversa privada usa (fs_chat_autonomo,
 // controllers/privada.py), sempre com a sessão da conversa privada. Tudo o
-// que vai daqui para lá já vai cifrado (cofre.js), exceto o consumo de tokens,
+// que vai daqui para lá já vai cifrado, exceto o consumo de tokens (quantos
+// entraram, quantos saíram e quantos da entrada vieram da cache),
 // as pesquisas na web que a pessoa confirma (só a frase ou o endereço) e os
 // avisos de uma falha do código do ecrã (falhas.js: só o tipo e o sítio do
 // erro no código e a versão do ecrã, nunca a mensagem nem nada da conversa).
@@ -30,14 +31,17 @@ export function criarServidor(carteiro, sessaoAtual, { esperar = (ms) => new Pro
   return {
     renovar: () => pedir('/fs_chat/privada/renovar', { metodo: 'POST' }),
     /** O consumo de uma resposta e, se o pedido levava imagens, quantos
-     *  bytes delas (o servidor tira-os da estimativa da cobrança). *pedido*:
+     *  bytes delas (o servidor tira-os da estimativa da cobrança). Desde
+     *  20/11/2026 vai também quantos tokens da entrada a caixa-forte serviu
+     *  da cache (*da_cache*, só quando há): cobram-se ao preço dela. *pedido*:
      *  o número que o carteiro deu à resposta (X-Recato-Pedido) — sem ele, o
      *  servidor junta o consumo ao pedido mais antigo por conferir. Se o
      *  carteiro ainda não acabou o pedido («a_correr»), volta a dizê-lo
      *  (ESPERAS_DO_CONSUMO_MS). */
     async consumo(usage, bytesImagens = 0, pedido = null) {
+      const daCache = Number(usage.prompt_tokens_details?.cached_tokens) || 0;
       const corpo = { entrada: usage.prompt_tokens, saida: usage.completion_tokens, imagens: bytesImagens,
-        ...(pedido ? { pedido: Number(pedido) } : {}) };
+        ...(daCache > 0 ? { da_cache: daCache } : {}), ...(pedido ? { pedido: Number(pedido) } : {}) };
       let dito = null;
       for (const espera of [0, ...ESPERAS_DO_CONSUMO_MS]) {
         if (espera) await esperar(espera);
@@ -61,18 +65,6 @@ export function criarServidor(carteiro, sessaoAtual, { esperar = (ms) => new Pro
     pesquisar: async (ferramenta, argumentos) => (await pedir('/fs_chat/privada/pesquisa', {
       metodo: 'POST', corpo: { ferramenta, argumentos },
     })).resultado,
-    /** {cofre}: a cópia da chave mestra fechada com o código. */
-    lerCofre: () => pedir('/fs_chat/privada/cofre'),
-    gravarCofre: (embrulhos, versaoAnterior) => pedir('/fs_chat/privada/cofre', {
-      metodo: 'POST', corpo: { embrulhos, versao_anterior: versaoAnterior || null },
-    }),
-    listarConversas: async () => (await pedir('/fs_chat/privada/conversas')).conversas,
-    lerConversa: (id) => pedir(`/fs_chat/privada/conversa/${id}`),
-    gravarConversa: (cifrada, id, versaoAnterior) => pedir(
-      id ? `/fs_chat/privada/conversa/${id}` : '/fs_chat/privada/conversa',
-      { metodo: 'POST', corpo: { ...cifrada, versao_anterior: versaoAnterior || null } },
-    ),
-    apagarConversa: (id) => pedir(`/fs_chat/privada/conversa/${id}/apagar`, { metodo: 'POST' }),
     /** A resposta cifrada que o carteiro guardou para o pedido *numero* (28/10/2026): o estado, os cabeçalhos OAE e
      *  os bocados a partir do *desde* (espera.js). Erro com o status 404 se não a tem. */
     lerResposta: (numero, desde = 0) => pedir(`/fs_chat/privada/resposta/${numero}?desde=${Number(desde) || 0}`),

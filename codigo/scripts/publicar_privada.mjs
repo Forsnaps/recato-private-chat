@@ -26,10 +26,11 @@ import { isDeepStrictEqual } from 'node:util';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { construir } from './construir_privada.mjs';
 
-const RAIZ = path.join(path.dirname(new URL(import.meta.url).pathname), '..');
+const RAIZ = fileURLToPath(new URL('..', import.meta.url));
 /** O código desta parte, tal como se publica (sem node_modules nem compilados). */
 const CODIGO = [
   'package.json', 'package-lock.json', 'privada', 'extensao', 'scripts/construir_privada.mjs',
@@ -167,7 +168,7 @@ export async function publicar({ repositorio, publicacao = 'local', quando = new
   return { versao: manifesto.versao, nova };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const argumento = (nome) => process.argv.slice(2).find((a) => a.startsWith(`--${nome}=`))?.split('=')[1];
   const repositorio = argumento('repositorio');
   if (!repositorio) {

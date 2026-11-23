@@ -8,8 +8,9 @@
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const RAIZ = path.join(path.dirname(new URL(import.meta.url).pathname), '..');
+const RAIZ = fileURLToPath(new URL('..', import.meta.url));
 export const PACOTES = JSON.parse(fs.readFileSync(path.join(RAIZ, 'privada', 'python', 'pacotes.json'), 'utf8'));
 export const CACHE = path.join(RAIZ, 'node_modules', '.cache', 'privada-python');
 
@@ -34,7 +35,7 @@ export async function rodasPython({ cache = CACHE, buscar = fetch } = {}) {
   return rodas;
 }
 
-if (process.argv[1] === new URL(import.meta.url).pathname) {
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const rodas = await rodasPython();
   for (const [ficheiro, dados] of Object.entries(rodas)) console.log(`${sha256(dados).slice(0, 12)}  ${ficheiro}`);
 }

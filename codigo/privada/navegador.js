@@ -1,9 +1,10 @@
 // O ecrã da conversa privada fora da app (22/10/2026): na extensão do browser
 // e na página privada.recato.ai. Faz o que a parte nativa da app faz
-// (nativo.js): dá a sessão e guarda a cópia da chave mestra deste browser,
-// fechada com uma chave que o próprio browser cria e não deixa copiar
-// (WebCrypto, não exportável, guardada no IndexedDB desta origem).
-import { aleatorio, b64, de64 } from './cofre.js';
+// (nativo.js): dá a sessão e fecha a chave das respostas à espera deste
+// browser (espera.js) com uma chave que o próprio browser cria e não deixa
+// copiar (WebCrypto, não exportável, guardada no IndexedDB desta origem).
+// Até 19/11/2026 fechava também a cópia da chave do histórico, que saiu.
+import { aleatorio, b64, de64 } from './bytes.js';
 
 const SESSAO_DO_SEPARADOR = 'privada.sessao';
 const LINGUA_DO_SEPARADOR = 'privada.lingua';
@@ -117,9 +118,9 @@ export function armazemIndexedDB(indexedDB = globalThis.indexedDB) {
 }
 
 /** A chave deste browser: AES-256 criada aqui e NÃO exportável — o browser
- *  usa-a, mas nem este código a consegue tirar de lá. Fecha e abre a cópia
- *  da chave mestra deste browser (o mesmo formato da app: IV e bytes
- *  fechados, em base64). */
+ *  usa-a, mas nem este código a consegue tirar de lá. Fecha e abre a chave
+ *  das respostas à espera (o mesmo formato da app: IV e bytes fechados, em
+ *  base64). */
 export function criarChaveDoNavegador(armazem = armazemIndexedDB()) {
   async function chave(criar) {
     let guardada = await armazem.ler(CHAVE);

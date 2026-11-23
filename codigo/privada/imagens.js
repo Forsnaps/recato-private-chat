@@ -15,9 +15,6 @@ export const MAX_BYTES_IMAGEM = 1024 * 1024;
 export const MAX_BYTES_POR_PEDIDO = 3 * 1024 * 1024;
 export const MAX_IMAGENS_POR_PEDIDO = 8;
 export const MENSAGENS_COM_IMAGENS = 3;
-/** O que cabe das imagens numa conversa guardada (a conversa cifrada vai até
- *  4 MB em base64: ≈3 MB de conteúdo, com o texto). */
-export const MAX_BYTES_GUARDADOS = 2.5 * 1024 * 1024;
 const TIPOS_DIRETOS = ['image/jpeg', 'image/png', 'image/webp'];
 
 /** O tamanho de uma imagem em data URL, tal como vai no pedido (base64). */
@@ -81,35 +78,6 @@ export function paraOModelo(sistema, conversa) {
     ] };
   })];
   return { mensagens, bytesImagens };
-}
-
-/** As mensagens a guardar no histórico: as imagens mais recentes até
- *  *maximo* (por omissão MAX_BYTES_GUARDADOS; menos quando a conversa leva
- *  muito texto ou os originais de documentos); as outras ficam contadas em
- *  `imagensNaoGuardadas`. */
-export function paraGuardar(mensagens, maximo = MAX_BYTES_GUARDADOS) {
-  let bytes = 0;
-  const guardadas = [];
-  for (let i = mensagens.length - 1; i >= 0; i -= 1) {
-    const m = mensagens[i];
-    if (!m.imagens?.length) {
-      guardadas.unshift(m);
-      continue;
-    }
-    const ficam = [];
-    let fora = m.imagensNaoGuardadas || 0;
-    for (const url of [...m.imagens].reverse()) {
-      if (bytes + bytesDe(url) <= maximo) {
-        ficam.unshift(url);
-        bytes += bytesDe(url);
-      } else {
-        fora += 1;
-      }
-    }
-    const { imagens: _imagens, imagensNaoGuardadas: _fora, ...resto } = m;
-    guardadas.unshift({ ...resto, ...(ficam.length ? { imagens: ficam } : {}), ...(fora ? { imagensNaoGuardadas: fora } : {}) });
-  }
-  return guardadas;
 }
 
 /** Uma imagem escolhida pela pessoa como data URL pronta para o modelo:

@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 
-import { aleatorio } from '../cofre.js';
+import { aleatorio } from '../bytes.js';
 import { bytesDaResposta, criarEsperas, fluxoGuardado, INTERVALO_MS, PRAZO_DIAS, quandoAVista } from '../espera.js';
 import { criarChaveDoNavegador } from '../navegador.js';
 import { RespostaParada } from '../pesquisa.js';

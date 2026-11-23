@@ -13,9 +13,11 @@
 // e de que tipo foi o erro, e a versão do ecrã, para se corrigir — nunca a
 // mensagem do erro nem nada da conversa (falhas.js).
 //
-// O histórico, se a pessoa o quiser, é cifrado aqui com uma chave que neste
-// telemóvel (ou browser) abre sozinha e, noutro, só com o código de
-// recuperação (historico.js).
+// Nada desta conversa fica guardado (19/11/2026, pedido do Pedro: «A conversa
+// privada não deve conseguir nunca ser gravada»): vive em memória enquanto o
+// ecrã está aberto. De 22/10 a 19/11/2026 havia um histórico cifrado, à
+// escolha da pessoa (historico.js e cofre.js), que saiu; o que ele deixou
+// neste aparelho apaga-se ao abrir (esquecerOHistorico).
 //
 // Fechar o ecrã a meio de uma resposta não a interrompe (28/10/2026, pedido do
 // Pedro): o servidor continua a recebê-la, cifrada, e quem volta a este
@@ -34,7 +36,7 @@
 // Os documentos anexados (27/10/2026, decisão do Pedro): PDF, Word, Excel,
 // PowerPoint e texto, lidos e editados neste ecrã pelo mesmo código do chat
 // (anexos.js); o texto deles vai com a mensagem à caixa-forte, e os
-// originais ficam em memória e, os que couberem, guardados com a conversa.
+// originais ficam em memória (e, os que couberem, com uma resposta à espera).
 import { PrivatemodeAI } from 'privatemode-ai';
 
 import {
@@ -42,11 +44,10 @@ import {
   lerAnexos, lerAsPaginas, MAX_TOKENS_DAS_FICHAS, originaisParaGuardar, REGRA_DAS_FICHAS, temFichas, textoDosAnexos,
   textoDosAnexosComFicha,
 } from './anexos.js';
-import { b64, codigoValido, de64 } from './cofre.js';
+import { b64, de64 } from './bytes.js';
 import { criarEsperas, fluxoGuardado, quandoAVista } from './espera.js';
 import { avisos, eDaRede } from './falhas.js';
 import { REGRAS_DOS_FICHEIROS } from './ficheiros.js';
-import { criarHistorico } from './historico.js';
 import { MAX_IMAGENS_POR_PEDIDO, paraOModelo, prepararImagem } from './imagens.js';
 import { desenharPaginas } from './paginas.js';
 import { armazemIndexedDB, enderecoDoRecato, linguaDaLigacao } from './navegador.js';
@@ -69,7 +70,6 @@ avisos.escutar();
 /* global __WASM_SHA256__ */
 const WASM_SHA256 = __WASM_SHA256__;
 const RENOVAR_ANTES_S = 3600;
-const RECUSOU_O_HISTORICO = 'privada.recusou_o_historico';
 
 // A língua é a da conta no Recato de onde a pessoa veio, que vem na ligação
 // — na página web, na extensão e na app (26/10/2026: o Pedro, com o Recato em
@@ -90,6 +90,11 @@ const SISTEMA = PT
     + 'pesquisa na web (ver PESQUISA NA WEB), mas '
     + 'cada pesquisa e cada página só saem da caixa-forte depois de o utilizador as confirmar no '
     + 'ecrã: pede só as que fazem falta e, se ele não as autorizar, responde sem elas e di-lo. '
+    // Imagens e vídeos novos (21/11/2026, pedido do Pedro): quem os cria fica fora da caixa-forte, por isso aqui
+    // não há essa função — o modelo di-lo e diz como a ter, em vez de prometer o que não pode fazer.
+    + 'Não crias imagens nem vídeos: essa função não existe na conversa privada, porque levaria o pedido para fora '
+    + 'da caixa-forte. Se to pedirem, diz numa frase que ela não existe aqui e que, para a ter, o utilizador pode '
+    + 'fechar este ecrã e pedir numa conversa normal do Recato; depois ajuda no que der sem ela. '
     + 'Nunca inventes factos, números, leis ou citações; quando não tens certeza, di-lo. '
     // Quem é (14/11/2026): sem isto, perguntado, o modelo dizia que empresa o treinou — como no chat do Recato,
     // diz só que é um modelo aberto, na caixa-forte, na União Europeia.
@@ -104,7 +109,10 @@ const SISTEMA = PT
     + 'You can search the web (see PESQUISA '
     + 'NA WEB, in Portuguese), but each search and each page only leaves the secure enclave after the '
     + 'user confirms it on screen: ask only for those you need and, if the user declines, answer '
-    + 'without them and say so. Never make up facts, numbers, laws or quotes; say so when you are '
+    + 'without them and say so. You do not create images or videos: that function does not exist in the private '
+    + 'chat, because it would take the request out of the secure enclave. If asked, say in one sentence that it '
+    + 'does not exist here and that, to get it, the user can close this screen and ask in a normal Recato '
+    + 'conversation; then help as far as you can without it. Never make up facts, numbers, laws or quotes; say so when you are '
     + 'not sure. If you are asked which model you are, who created you or who made you, say only that you '
     + 'are Recato and that you run on an open model, inside the secure enclave, on servers in the European '
     + 'Union; do not say which company created the model or which company hosts it, even if pressed.';
@@ -145,21 +153,6 @@ function el(etiqueta, atributos, ...filhos) {
 const botao = (texto, acao, classe = '') => el('button', { type: 'button', classe: `botao ${classe}`, onclick: acao },
   texto);
 
-/** Um botão que pede confirmação nele próprio (a janela da app não mostra
- *  as caixas de confirmação do browser): o 1.º toque troca o texto, o 2.º faz. */
-function botaoComConfirmacao(texto, confirmar, acao, classe = '') {
-  const b = botao(texto, () => {
-    if (b.dataset.perguntado) {
-      acao();
-      return;
-    }
-    b.dataset.perguntado = '1';
-    b.textContent = confirmar;
-    b.classList.add('perigo');
-  }, classe);
-  return b;
-}
-
 // O Markdown do modelo (negrito, títulos e tabelas) vem de texto.js, que
 // escapa tudo antes: nenhum HTML do modelo entra.
 function mostrar(caixa, texto) {
@@ -167,10 +160,10 @@ function mostrar(caixa, texto) {
   else caixa.textContent = texto;
 }
 
-/** Uma mensagem na conversa; as da pessoa podem levar imagens (data URLs),
- *  dizer quantas não ficaram guardadas no histórico, e os documentos que
- *  juntou (pelo nome); as do Recato, os ficheiros que fez (para descarregar). */
-function mensagem(quem, texto, { imagens = [], naoGuardadas = 0, ficheiros = [], anexos = [] } = {}) {
+/** Uma mensagem na conversa; as da pessoa podem levar imagens (data URLs) e
+ *  os documentos que juntou (pelo nome); as do Recato, os ficheiros que fez
+ *  (para descarregar). */
+function mensagem(quem, texto, { imagens = [], ficheiros = [], anexos = [] } = {}) {
   const caixa = el('div', { classe: `msg ${quem}` });
   mostrar(caixa, texto);
   if (ficheiros.length) caixa.append(el('div', { classe: 'ficheiros' }, ...ficheiros.map(botaoDoFicheiro)));
@@ -178,37 +171,23 @@ function mensagem(quem, texto, { imagens = [], naoGuardadas = 0, ficheiros = [],
     caixa.append(el('div', { classe: 'documentos' }, ...anexos.map((a) => el('span', { classe: 'documento' },
       `📎 ${a.nome}`))));
   }
-  if (imagens.length || naoGuardadas) {
+  if (imagens.length) {
     caixa.prepend(el('div', { classe: 'miniaturas' },
-      ...imagens.map((url) => el('img', { classe: 'miniatura', src: url, alt: '' })),
-      naoGuardadas ? el('span', { classe: 'nao-guardada' }, t('imagem_nao_guardada')) : null));
+      ...imagens.map((url) => el('img', { classe: 'miniatura', src: url, alt: '' }))));
   }
   $('mensagens').appendChild(caixa);
   caixa.scrollIntoView({ block: 'end' });
   return caixa;
 }
 
-// ── a linha do histórico (por baixo do estado) e o painel ─────────────
+// ── a linha de avisos (por baixo do estado) ───────────────────────────
+// Até 19/11/2026 era também a do histórico, que abria um painel à parte.
 
 function linha(texto, botoes = []) {
-  const caixa = $('historico');
+  const caixa = $('linha');
   caixa.replaceChildren(...(texto ? [el('span', {}, texto),
     ...botoes.map(([rotulo, acao]) => botao(rotulo, acao, 'pequeno'))] : []));
   caixa.hidden = !texto;
-}
-
-function mostrarPainel(...filhos) {
-  $('painel').replaceChildren(...filhos);
-  $('painel').hidden = false;
-  $('mensagens').hidden = true;
-  $('caixa').hidden = true;
-  $('painel').scrollTop = 0;
-}
-
-function fecharPainel() {
-  $('painel').hidden = true;
-  $('mensagens').hidden = false;
-  $('caixa').hidden = false;
 }
 
 // ── a sessão, o servidor e a caixa-forte ─────────────────────────────
@@ -220,7 +199,6 @@ let cliente = null;
 /** O segredo de cifra do SDK, de cada vez que ele o faz (onSecretUpdate): é com ele que uma resposta guardada se
  *  abre (oae.js). Pedi-lo ao SDK antes de ele o ter (exportSecret) mata o SDK. */
 let ultimoSegredo = null;
-let historico = null;
 
 async function renovarSePreciso() {
   if (Date.now() / 1000 < expira - RENOVAR_ANTES_S) return;
@@ -233,29 +211,9 @@ async function renovarSePreciso() {
 
 // ── a conversa ───────────────────────────────────────────────────────
 
-let atual = { id: null, versao: null, mensagens: [], nivelMaximo: false };
-let gravacoes = Promise.resolve();
+let atual = { mensagens: [], nivelMaximo: false };
 /** O «sim/não» de um pedido de pesquisa à espera da pessoa. */
 let confirmacaoPendente = null;
-
-/** Grava a conversa cifrada, se o histórico estiver aberto. Uma de cada
- *  vez, pela ordem das respostas; com a rede ou o servidor em baixo, volta
- *  a tentar (28/10/2026: com a app fechada, a resposta tem de ficar gravada). */
-function guardar(conversa) {
-  if (historico?.estado !== 'aberto' || !conversa.mensagens.length) return;
-  // Os originais dos anexos que couberem vão com a conversa (anexos.js).
-  const emMemoria = bytesDosAnexos(conversa);
-  conversa.originais = originaisParaGuardar(conversa.mensagens,
-    (id) => emMemoria.get(id) || conversa.originais?.[id] || null);
-  gravacoes = gravacoes.then(async () => {
-    try {
-      const gravada = await comTentativas(() => historico.guardar(conversa));
-      Object.assign(conversa, { id: gravada.id, versao: gravada.versao, titulo: gravada.titulo });
-    } catch {
-      linha(t('erro_guardar'));
-    }
-  });
-}
 
 function mostrarConversa(conversa) {
   // Trocar de conversa com uma pesquisa por confirmar é um «não»: a resposta
@@ -264,12 +222,10 @@ function mostrarConversa(conversa) {
   atual = conversa;
   $('mensagens').replaceChildren(el('p', { classe: 'aviso' }, t('aviso')));
   for (const m of conversa.mensagens) {
-    mensagem(m.papel, m.texto, { imagens: m.imagens || [], naoGuardadas: m.imagensNaoGuardadas || 0,
-      ficheiros: m.ficheiros || [], anexos: m.anexos || [] });
+    mensagem(m.papel, m.texto, { imagens: m.imagens || [], ficheiros: m.ficheiros || [], anexos: m.anexos || [] });
   }
   mostrarNivel();
   mostrarWebSemPerguntar();
-  fecharPainel();
 }
 
 /** A caixa de escrita só abre com a caixa-forte verificada (pronta) e não
@@ -292,12 +248,9 @@ function pararResposta() {
 }
 
 /** O fim do trabalho: na app, deixa de ficar à frente do resto (com a app
- *  fechada, avisa que a resposta está pronta). Só depois de gravada a
- *  conversa, que com a app fechada também tem de chegar ao fim. */
+ *  fechada, avisa que a resposta está pronta). */
 function trabalhoAcabou() {
-  gravacoes.finally(() => {
-    if (!paragem) plataforma.avisarTrabalho?.(false);
-  });
+  if (!paragem) plataforma.avisarTrabalho?.(false);
 }
 
 // ── os ficheiros (python.js e ficheiros.js, 27/10/2026) ────────────────
@@ -336,7 +289,8 @@ function guardarBytes(ficheiro, dados) {
 
 // ── os documentos anexados (anexos.js, 27/10/2026) ──────────────────
 // Os originais de cada conversa ficam em memória enquanto o ecrã está aberto;
-// os que couberem, guardados com ela (conversa.originais, em base64).
+// os que couberem vão com uma resposta à espera (conversa.originais, em
+// base64; ver instantaneo).
 
 const memoriaDosAnexos = new WeakMap();
 
@@ -480,19 +434,19 @@ async function pedirAoModelo(pedido, { numero = null, ...opcoes } = {}) {
 // Antes de cada pedido sair, fica guardado neste aparelho (cifrado) o que é
 // preciso para continuar a resposta se o ecrã fechar: a conversa, a ronda em
 // curso e o segredo do SDK com que ela se abre. Apaga-se quando a resposta
-// fica mostrada e, com o histórico aberto, gravada.
+// fica mostrada.
 
 let esperas = null;
 /** A espera da resposta em curso: o «Parar» também a para no servidor. */
 let esperaAtual = null;
 
-/** O que fica guardado de uma conversa, para a retomar; *semAUltima*: sem a
- *  mensagem que a pessoa acabou de escrever (volta a enviar-se). */
+/** O que uma resposta à espera guarda da conversa (espera.js), para a
+ *  retomar; *semAUltima*: sem a mensagem que a pessoa acabou de escrever
+ *  (volta a enviar-se). */
 function instantaneo(conversa, { semAUltima = false } = {}) {
   const emMemoria = bytesDosAnexos(conversa);
   const mensagens = semAUltima ? conversa.mensagens.slice(0, -1) : conversa.mensagens;
-  return { id: conversa.id, versao: conversa.versao, titulo: conversa.titulo || null, mensagens,
-    nivelMaximo: !!conversa.nivelMaximo, pesquisaSemPerguntar: !!conversa.pesquisaSemPerguntar,
+  return { mensagens, nivelMaximo: !!conversa.nivelMaximo, pesquisaSemPerguntar: !!conversa.pesquisaSemPerguntar,
     ficheiroSeguinte: conversa.ficheiroSeguinte || 0,
     originais: originaisParaGuardar(mensagens, (id) => emMemoria.get(id) || conversa.originais?.[id] || null) };
 }
@@ -552,7 +506,7 @@ function criarEspera(conversa, { id = crypto.randomUUID(), ficheiros, retomar = 
     parar() {
       if (ronda?.numero) servidor.pararResposta(ronda.numero).catch(() => {});
     },
-    /** A resposta ficou mostrada (e gravada, com o histórico aberto): já não espera por ninguém. */
+    /** A resposta ficou mostrada: já não espera por ninguém. */
     async acabar() {
       await esperas?.apagar(id).catch(() => {});
       for (const numero of new Set([...numeros, ...(retomar ? [retomar.numero] : [])])) {
@@ -635,8 +589,8 @@ async function juntarFicheiros(ficheiros) {
 
 // ── quanto pensa a conversa (como no chat do Recato, 26/10/2026) ───────
 // A pílula «Normal» ou «Máximo», sempre à mão, abre o menu dos dois níveis.
-// Vale para a conversa toda e fica guardada (cifrada) com ela; a resposta que
-// já vem a caminho não muda de nível.
+// Vale para a conversa toda; a resposta que já vem a caminho não muda de
+// nível.
 
 /** A pílula da conversa aberta e o ✓ do menu. */
 function mostrarNivel() {
@@ -657,7 +611,6 @@ function escolherNivel(maximo) {
   if (!!atual.nivelMaximo === maximo) return;
   atual.nivelMaximo = maximo;
   mostrarNivel();
-  guardar(atual);
 }
 
 // ── a pesquisa sem perguntar nesta conversa (opção A do Pedro, 26/10/2026) ──
@@ -670,7 +623,6 @@ function mostrarWebSemPerguntar() {
 function voltarAPerguntar() {
   atual.pesquisaSemPerguntar = false;
   mostrarWebSemPerguntar();
-  guardar(atual);
 }
 
 // ── a pesquisa na web: a pessoa confirma cada uma ────────────────────
@@ -877,7 +829,6 @@ async function correrResposta(conversa, caixa, { ficheiros, espera, preparar, tr
       const feitos = [...ficheiros.values()];
       if (feitos.length) caixa.append(el('div', { classe: 'ficheiros' }, ...feitos.map(botaoDoFicheiro)));
       conversa.mensagens.push({ papel: 'recato', texto: resposta, ...(feitos.length ? { ficheiros: feitos } : {}) });
-      guardar(conversa);
     } catch (e) {
       if (e instanceof RespostaParada || sinal.aborted) {
         // Parada no «Parar», como no chat do Recato: fica o que já tinha
@@ -888,7 +839,6 @@ async function correrResposta(conversa, caixa, { ficheiros, espera, preparar, tr
         const feitos = [...ficheiros.values()];
         if (feitos.length) caixa.append(el('div', { classe: 'ficheiros' }, ...feitos.map(botaoDoFicheiro)));
         conversa.mensagens.push({ papel: 'recato', texto: parada, ...(feitos.length ? { ficheiros: feitos } : {}) });
-        guardar(conversa);
       } else if (e instanceof RespostaSemSaldo) {
         // Cortada a meio pelo saldo (14/11/2026), como no chat do Recato: fica o que já tinha escrito, e os ficheiros
         // que já fez, com a nota de porquê — o saldo acabou, ou o que resta está reservado por outras respostas em
@@ -900,7 +850,6 @@ async function correrResposta(conversa, caixa, { ficheiros, espera, preparar, tr
         const feitos = [...ficheiros.values()];
         if (feitos.length) caixa.append(el('div', { classe: 'ficheiros' }, ...feitos.map(botaoDoFicheiro)));
         conversa.mensagens.push({ papel: 'recato', texto: cortada, ...(feitos.length ? { ficheiros: feitos } : {}) });
-        guardar(conversa);
       } else {
         conversa.mensagens.pop();
         // Em ciclo (pesquisa.js, RespostaEmCiclo), o carteiro também para: cortar a leitura não chega, ele
@@ -916,11 +865,10 @@ async function correrResposta(conversa, caixa, { ficheiros, espera, preparar, tr
       esperaAtual = null;
       aplicarCaixa();
       trabalhoAcabou();
-      // Mostrada (e gravada, com o histórico aberto): já não espera por ninguém. Sem o histórico, só quando a pessoa
-      // a pode ver: com o ecrã escondido (no Android, o separador fechado fica vivo uns segundos e acaba-a sozinho)
-      // fica à espera até ele voltar à vista — e, se morrer antes, quem voltar tem-na lá (30/10/2026).
-      gravacoes.finally(() => (historico?.estado === 'aberto' ? espera.acabar()
-        : quandoAVista(document, () => espera.acabar())));
+      // Mostrada à pessoa, já não espera por ninguém: com o ecrã escondido (no Android, o separador fechado fica
+      // vivo uns segundos e acaba-a sozinho) fica à espera até ele voltar à vista — e, se morrer antes, quem voltar
+      // tem-na lá (30/10/2026). Até 19/11/2026, com o histórico aberto, acabava logo que a conversa ficava gravada.
+      quandoAVista(document, () => espera.acabar());
     }
   };
   if (trincada) await correr();
@@ -966,241 +914,35 @@ async function retomarEsperas() {
   }
 }
 
-// ── o histórico ──────────────────────────────────────────────────────
+// ── o histórico que saiu (19/11/2026) ─────────────────────────────────
 
-function recusouOHistorico() {
+/** De 22/10 a 19/11/2026, quem guardava as conversas privadas tinha neste
+ *  aparelho a cópia da chave do histórico (fechada pelo chip do telemóvel ou
+ *  pela chave do browser) e, quem disse «Agora não», essa resposta. O
+ *  histórico saiu e as conversas guardadas apagaram-se no servidor
+ *  (fs_chat_autonomo, migração 1.0.59.0): o que ficou aqui apaga-se, e quem
+ *  o tinha ligado vê o aviso uma vez. */
+function esquecerOHistorico() {
+  let tinha = false;
   try {
-    return localStorage.getItem(RECUSOU_O_HISTORICO) === '1';
-  } catch {
-    return false;
-  }
-}
-
-function historicoAberto() {
-  linha(null);
-  $('ver-conversas').hidden = false;
-  guardar(atual);
-}
-
-function historicoFechado() {
-  linha(t('fechado'), [[t('usar_codigo'), pedirCodigo]]);
-}
-
-function oferecerOHistorico() {
-  linha(t('oferta'), [[t('guardar'), ativar], [t('agora_nao'), () => {
-    try {
-      localStorage.setItem(RECUSOU_O_HISTORICO, '1');
-    } catch {
-      // Sem armazenamento: volta a perguntar da próxima vez.
+    for (let i = localStorage.length - 1; i >= 0; i -= 1) {
+      const nome = localStorage.key(i);
+      if (nome === 'privada.recusou_o_historico' || nome?.startsWith('privada.chave.')) {
+        tinha ||= nome.startsWith('privada.chave.');
+        localStorage.removeItem(nome);
+      }
     }
-    linha(null);
-  }]]);
-}
-
-// A cópia da chave mestra fechada pelo chip fica no armazenamento deste ecrã,
-// dentro da app: sozinha não abre nada, e se se perder pede-se o código.
-const guardados = {
-  ler(chave) {
-    try {
-      return localStorage.getItem(chave);
-    } catch {
-      return null;
-    }
-  },
-  gravar(chave, valor) {
-    localStorage.setItem(chave, valor);
-  },
-  apagar(chave) {
-    try {
-      localStorage.removeItem(chave);
-    } catch {
-      // Sem armazenamento: não há nada para apagar.
-    }
-  },
-};
-
-async function prepararOHistorico(conta) {
-  historico = criarHistorico({
-    servidor, telemovel: { fechar: plataforma.fechar, abrir: plataforma.abrir }, guardados, conta,
-  });
-  try {
-    await historico.ler();
   } catch {
-    linha(t('sem_historico'));
-    return;
+    // Sem armazenamento: não há nada para apagar.
   }
-  if (historico.estado === 'aberto') {
-    historicoAberto();
-  } else if (historico.estado === 'fechado') {
-    historicoFechado();
-  } else if (!recusouOHistorico()) {
-    oferecerOHistorico();
-  }
-}
-
-function ativar() {
-  linha(null);
-  mostrarCodigo(historico.comecarAtivacao(), { cancelar: cancelarAtivacao });
-}
-
-/** «Cancelar» no código (26/10/2026: sem ele, quem carregava em «Guardar»
- *  ficava preso no código): nada foi gravado, volta a pergunta. */
-function cancelarAtivacao() {
-  fecharPainel();
-  oferecerOHistorico();
-}
-
-async function concluirAtivacao() {
-  try {
-    await historico.concluirAtivacao();
-  } catch {
-    fecharPainel();
-    linha(t('erro_ativar'));
-    return;
-  }
-  fecharPainel();
-  historicoAberto();
-}
-
-/** O código de recuperação no ecrã: ao ativar e, com *opcoes*, no código novo. */
-function mostrarCodigo(codigo, { titulo = t('codigo_titulo'), explica = t('codigo_explica'),
-  guardei = concluirAtivacao, cancelar = null } = {}) {
-  const copiar = botao(t('copiar'), () => {
-    navigator.clipboard?.writeText(codigo).then(() => { copiar.textContent = t('copiado'); }, () => {});
-  }, 'secundario');
-  mostrarPainel(
-    el('h2', {}, titulo),
-    el('p', {}, explica),
-    // Muda de linha só entre os grupos de 5.
-    el('div', { classe: 'codigo' }, ...codigo.split('-').map((grupo, i, todos) => el('span', {},
-      i < todos.length - 1 ? `${grupo}-` : grupo))),
-    el('div', { classe: 'botoes' }, copiar, botao(t('guardei'), guardei),
-      cancelar && botao(t('cancelar'), cancelar, 'secundario')),
-  );
-}
-
-/** Código novo: o telemóvel confirma primeiro que é a pessoa (quem pegasse
- *  no telemóvel desbloqueado não levava um código para abrir as conversas
- *  noutro); só depois o código aparece. */
-async function pedirCodigoNovo(aviso) {
-  try {
-    await plataforma.confirmarAPessoa(t('codigo_novo'), t('confirma'));
-  } catch (e) {
-    aviso.textContent = e.codigo === 'sem_bloqueio' ? t('sem_bloqueio') : '';
-    return;
-  }
-  mostrarCodigo(historico.comecarCodigoNovo(), {
-    titulo: t('codigo_novo_titulo'), explica: t('codigo_novo_explica'),
-    guardei: concluirCodigoNovo, cancelar: mostrarConversas,
-  });
-}
-
-async function concluirCodigoNovo() {
-  try {
-    await historico.concluirCodigoNovo();
-  } catch (e) {
-    fecharPainel();
-    if (e.codigo === 'versao') {
-      await historico.ler().catch(() => {});
-      linha(t('codigo_mudado'));
-    } else {
-      avisos.seFalhar('historico_codigo', e);
-      linha(t('erro_codigo_novo'));
-    }
-    return;
-  }
-  fecharPainel();
-  linha(t('codigo_novo_guardado'), [['OK', () => linha(null)]]);
-}
-
-function pedirCodigo() {
-  const campo = el('input', { type: 'text', classe: 'campo-codigo', autocomplete: 'off', autocapitalize: 'characters',
-    spellcheck: 'false', placeholder: 'XXXXX-XXXXX-XXXXX-XXXXX-XXXXX' });
-  const erro = el('p', { classe: 'erro' });
-  const abrir = botao(t('abrir'), async () => {
-    if (!codigoValido(campo.value)) {
-      erro.textContent = t('codigo_incompleto');
-      return;
-    }
-    abrir.disabled = true;
-    erro.textContent = '';
-    const aberto = await historico.abrirComCodigo(campo.value);
-    abrir.disabled = false;
-    if (!aberto) {
-      erro.textContent = t('codigo_errado');
-      return;
-    }
-    fecharPainel();
-    historicoAberto();
-  });
-  mostrarPainel(
-    el('h2', {}, t('usar_codigo')),
-    el('p', {}, t('codigo_pedir')),
-    campo,
-    erro,
-    el('div', { classe: 'botoes' }, abrir, botao(t('cancelar'), fecharPainel, 'secundario')),
-  );
-  campo.focus();
-}
-
-function dataCurta(utc) {
-  const data = new Date(`${utc.replace(' ', 'T')}Z`);
-  return data.toLocaleDateString(PT ? 'pt-PT' : 'en-GB', { day: 'numeric', month: 'short' });
-}
-
-async function mostrarConversas() {
-  const lista = el('div', { classe: 'lista' });
-  const aviso = el('p', { classe: 'erro' });
-  mostrarPainel(
-    el('div', { classe: 'botoes' },
-      botao(t('nova_conversa'), () => mostrarConversa({ id: null, versao: null, mensagens: [] })),
-      botao(t('voltar'), fecharPainel, 'secundario')),
-    el('h2', {}, t('conversas')),
-    lista,
-    el('div', { classe: 'codigo-novo' },
-      el('p', { classe: 'aviso' }, t('codigo_novo_pergunta')),
-      plataforma.confirmarAPessoa && botao(t('codigo_novo'), () => pedirCodigoNovo(aviso), 'pequeno secundario'),
-      aviso),
-  );
-  let conversas;
-  try {
-    conversas = await historico.lista();
-  } catch {
-    lista.append(el('p', { classe: 'erro' }, t('sem_historico')));
-    return;
-  }
-  if (!conversas.length) lista.append(el('p', { classe: 'aviso' }, t('sem_conversas')));
-  for (const c of conversas) {
-    lista.append(el('div', { classe: 'item' },
-      el('button', { type: 'button', classe: 'abrir-conversa', onclick: () => abrirConversa(c.id) },
-        el('span', { classe: 'item-titulo' }, c.titulo || t('sem_titulo')),
-        el('span', { classe: 'item-data' }, dataCurta(c.atualizada))),
-      botaoComConfirmacao(t('apagar'), t('confirmar_apagar'), () => apagarConversa(c.id), 'pequeno secundario')));
-  }
-}
-
-async function abrirConversa(id) {
-  try {
-    mostrarConversa(await historico.abrir(id));
-  } catch {
-    fecharPainel();
-    linha(t('erro_abrir'));
-  }
-}
-
-async function apagarConversa(id) {
-  try {
-    await historico.apagar(id);
-  } catch {
-    // Volta a aparecer na lista: tenta-se outra vez.
-  }
-  if (atual.id === id) mostrarConversa({ id: null, versao: null, mensagens: [] });
-  await mostrarConversas();
+  // Quem o tinha ligado neste aparelho fica a saber, uma vez, porque já não vê as conversas.
+  if (tinha) linha(t('historico_apagado'), [['OK', () => linha(null)]]);
 }
 
 // ── o arranque ───────────────────────────────────────────────────────
 
 async function arrancar() {
+  esquecerOHistorico();
   // Na página web não há prova de que o código é o publicado: diz-se às
   // claras (a extensão, se a pessoa a tiver, confere-a e muda a faixa).
   $('faixa').hidden = plataforma.onde !== 'web';
@@ -1248,7 +990,7 @@ async function arrancar() {
   // resposta guardada à espera, e ela abre-se com ele (espera.js). Se falhar, o SDK fá-lo no 1.º pedido.
   await cliente.refreshSecret().catch(() => {});
   // As respostas à espera (espera.js) antes de se poder enviar (30/10/2026, achado no Chrome do Android: quem
-  // enviava logo, antes de o histórico estar lido, ficava sem a espera guardada e, ao fechar, sem a resposta).
+  // enviava logo, antes de elas estarem prontas, ficava sem a espera guardada e, ao fechar, sem a resposta).
   esperas = criarEsperas({ armazem: armazemIndexedDB(), fechar: plataforma.fechar, abrir: plataforma.abrir,
     conta: dados.carteiro });
   estado(t('verificada'), 'ok');
@@ -1303,8 +1045,6 @@ async function arrancar() {
   document.addEventListener('click', (evento) => {
     if (!evento.target.closest?.('.nivel')) abrirMenuNivel(false);
   });
-  $('ver-conversas').addEventListener('click', mostrarConversas);
-  await prepararOHistorico(dados.carteiro);
   // A resposta que ficou a meio quando o ecrã fechou (28/10/2026): continua aqui.
   await retomarEsperas();
 }

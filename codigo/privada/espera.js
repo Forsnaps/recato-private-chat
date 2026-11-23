@@ -8,10 +8,9 @@
 // aqui, antes de o pedido sair, o que precisa para continuar quando a pessoa
 // voltar: a conversa, a ronda em curso e o segredo do SDK com que a resposta
 // se abre (oae.js). Fica cifrado com uma chave deste browser (ou deste
-// telemóvel), e apaga-se quando a resposta fica mostrada (e gravada, com o
-// histórico aberto) — também para quem disse «Agora não» ao histórico
-// (decisão do Pedro, 28/10/2026: «só até mostrar»).
-import { aleatorio, b64, de64 } from './cofre.js';
+// telemóvel), e apaga-se quando a resposta fica mostrada (decisão do Pedro,
+// 28/10/2026: «só até mostrar»).
+import { aleatorio, b64, de64 } from './bytes.js';
 import { pedacosDaResposta } from './oae.js';
 import { RespostaParada } from './pesquisa.js';
 

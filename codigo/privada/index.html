@@ -15,16 +15,14 @@
     <div class="linha-topo">
       <a class="botao pequeno secundario voltar" id="voltar-ao-recato" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg><span data-texto="voltar_ao_recato">Voltar ao Recato</span></a>
       <div class="titulo" data-texto="titulo">Conversa privada</div>
-      <button type="button" class="botao pequeno secundario" id="ver-conversas" data-texto="conversas" hidden>Conversas</button>
     </div>
     <div class="estado" id="estado" data-texto="a_verificar">A verificar a caixa-forte…</div>
     <div class="faixa" id="faixa" hidden><span data-texto="faixa_web">Esta página vem do servidor do Recato: sem a extensão (ou a app) não consegues confirmar que é a publicada.</span> <a href="confirmar.html" id="como-confirmar" target="_blank" rel="noopener" data-texto="como_confirmar">Como confirmar</a></div>
-    <div class="historico" id="historico" hidden></div>
+    <div class="linha" id="linha" hidden></div>
   </header>
   <main class="mensagens" id="mensagens">
-    <p class="aviso" data-texto="aviso">O que escreves aqui, e as imagens e os documentos que juntares, é cifrado no teu telemóvel e só é lido dentro da caixa-forte. Nem o Recato o consegue ler. Se for preciso pesquisar na web, o Recato avisa-te antes: a pesquisa torna a conversa menos privada.</p>
+    <p class="aviso" data-texto="aviso">O que escreves aqui, e as imagens e os documentos que juntares, é cifrado no teu telemóvel e só é lido dentro da caixa-forte. Nem o Recato o consegue ler. A conversa não fica guardada: quando fechares este ecrã, desaparece. Se for preciso pesquisar na web, o Recato avisa-te antes: a pesquisa torna a conversa menos privada.</p>
   </main>
-  <section class="painel" id="painel" hidden></section>
   <div class="barra-web" id="barra-web" hidden><span class="chip-web"><span aria-hidden="true">🌐</span> <span data-texto="web_sem_perguntar">Web sem perguntar</span><button type="button" id="tirar-web" data-titulo="voltar_a_perguntar" data-rotulo="voltar_a_perguntar">×</button></span></div>
   <div class="anexos" id="anexos" hidden></div>
   <p class="erro aviso-anexos" id="aviso-anexos" role="status"></p>

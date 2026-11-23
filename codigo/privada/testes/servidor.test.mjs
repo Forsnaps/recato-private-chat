@@ -1,6 +1,7 @@
 // Testes de privada/servidor.js (30/10/2026): o consumo de uma resposta, com
 // o servidor do Recato a fingir (o fetch). Correm com: npm test
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { afterEach, test } from 'node:test';
 
 import { criarServidor, ESPERAS_DO_CONSUMO_MS } from '../servidor.js';
@@ -31,6 +32,17 @@ test('o consumo vai com o número do pedido e a sessão; dito uma vez, chega', a
   assert.deepEqual(pedidos, [{ endereco: 'https://acme.recato.ai/fs_chat/privada/consumo',
     corpo: { entrada: 1228, saida: 610, imagens: 300, pedido: 42 }, autorizacao: 'Bearer sessao-1' }]);
   assert.deepEqual(esperas, []);
+});
+
+test('o consumo diz quantos tokens da entrada vieram da cache da caixa-forte, quando vieram (20/11/2026)', async () => {
+  const pedidos = servidorQueResponde([200, { estado: 'cobrado' }], [200, { estado: 'cobrado' }]);
+  const servidor = criarServidor('https://acme.recato.ai', () => 's', { esperar: async () => assert.fail('sem esperas') });
+  await servidor.consumo({ ...usage, prompt_tokens_details: { cached_tokens: 1100 } }, 0, '43');
+  await servidor.consumo({ ...usage, prompt_tokens_details: { cached_tokens: 0 } }, 0, '44');
+  assert.deepEqual(pedidos.map((p) => p.corpo), [
+    { entrada: 1228, saida: 610, imagens: 0, da_cache: 1100, pedido: 43 },
+    { entrada: 1228, saida: 610, imagens: 0, pedido: 44 },
+  ], 'Sem nada da cache, o corpo fica como antes.');
 });
 
 test('com o pedido ainda «a_correr» no carteiro, volta a dizê-lo, com esperas maiores, até ele acabar', async () => {
@@ -83,4 +95,13 @@ test('o porquê de um fluxo que acabou sem o fim: pergunta-se pelo número do pe
     autorizacao: 'Bearer sessao-1' }]);
   assert.equal(await servidor.corteDoFluxo({}), null, 'sem o número do pedido não se pergunta');
   assert.equal(pedidos.length, 1);
+});
+
+test('a conversa privada nunca se grava (19/11/2026): o ecrã já não tem as rotas do histórico', () => {
+  const servidor = criarServidor('https://acme.recato.ai', () => 'sessao-1');
+  for (const nome of ['lerCofre', 'gravarCofre', 'listarConversas', 'lerConversa', 'gravarConversa', 'apagarConversa']) {
+    assert.equal(servidor[nome], undefined, nome);
+  }
+  const codigo = readFileSync(new URL('../servidor.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(codigo, /\/fs_chat\/privada\/(cofre|conversas?)\b/);
 });

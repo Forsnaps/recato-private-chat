@@ -11,17 +11,18 @@
 import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist/legacy/build/pdf.min.mjs';
 
 import { LIMITES_DAS_PAGINAS } from './anexos.js';
-import { b64 } from './cofre.js';
+import { b64 } from './bytes.js';
 
 const { PAGINA_DPI, PAGINA_MAX_PIXEIS, PAGINA_JPEG_QUALIDADE } = LIMITES_DAS_PAGINAS;
 
 /**
  * As *paginas* (a contar de 1) do PDF *dados* em JPEG cinzento, em base64:
  * [{pagina, jpeg}], pela ordem. Uma página que não se desenha fica de fora
- * (como no chat, fica por ler); um PDF que não abre falha.
+ * (como no chat, fica por ler); um PDF que não abre falha. *pasta*: onde estão
+ * o worker e os WebAssembly do pdf.js (no ecrã, pdfjs/ ao lado da página; no
+ * painel do Recato Code, que também usa isto desde 19/11/2026, a dele).
  */
-export async function desenharPaginas(dados, paginas) {
-  const pasta = new URL('pdfjs/', document.baseURI).href;
+export async function desenharPaginas(dados, paginas, pasta = new URL('pdfjs/', document.baseURI).href) {
   GlobalWorkerOptions.workerSrc = `${pasta}pdf.worker.min.js`;
   // Destrói-se a tarefa, que fecha o documento e o worker (no pdf.js 6, o documento já não tem destroy).
   const tarefa = getDocument({ data: new Uint8Array(dados), wasmUrl: pasta, enableXfa: false });

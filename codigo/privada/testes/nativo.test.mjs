@@ -4,8 +4,8 @@
 import assert from 'node:assert/strict';
 import { beforeEach, test } from 'node:test';
 
-import { aleatorio, b64 } from '../cofre.js';
-import { abrirNoTelemovel, avisarTrabalho, confirmarAPessoa, fecharNoTelemovel, pedirSessao } from '../nativo.js';
+import { aleatorio, b64 } from '../bytes.js';
+import { abrirNoTelemovel, avisarTrabalho, fecharNoTelemovel, pedirSessao } from '../nativo.js';
 import { criarPlataforma } from '../plataforma.js';
 
 let pedidos;
@@ -54,17 +54,6 @@ test('cada resposta volta para o seu pedido, mesmo fora de ordem', async () => {
   esperas[0]();
   const [a, b] = await Promise.all([primeira, segunda]);
   assert.deepEqual([a.sessao, b.sessao], [`s${pedidos[0].id}`, `s${pedidos[1].id}`]);
-});
-
-test('confirmar que é a pessoa: os textos vão para o telemóvel; desistir ou sem bloqueio dão erro', async () => {
-  nativo(() => ({ ok: true }));
-  await confirmarAPessoa('Código novo', 'Confirma que és tu');
-  assert.deepEqual([pedidos[0].tipo, pedidos[0].titulo, pedidos[0].subtitulo],
-    ['confirmar_pessoa', 'Código novo', 'Confirma que és tu']);
-  nativo(() => ({ erro: 'cancelada' }));
-  await assert.rejects(confirmarAPessoa('a', 'b'), (e) => e.codigo === 'cancelada');
-  nativo(() => ({ erro: 'sem_bloqueio' }));
-  await assert.rejects(confirmarAPessoa('a', 'b'), (e) => e.codigo === 'sem_bloqueio');
 });
 
 test('o trabalho em curso: a app sabe quando a resposta começa e acaba, sem esperar resposta', () => {

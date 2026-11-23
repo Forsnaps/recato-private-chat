@@ -25,6 +25,7 @@ from docx.shared import Mm
 from docx.text.paragraph import Paragraph
 from docx.text.run import Run
 from lxml import etree
+from lxml import html as _lxml_html
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment
 from openpyxl.styles.numbers import BUILTIN_FORMATS, is_date_format
@@ -3267,3 +3268,215 @@ def _gerar_html(blocos, titulo):
     estilo = 'body{font-family:Helvetica,Arial,sans-serif;font-size:11pt;color:#222;margin:20mm}h1{font-size:20pt}h2{font-size:16pt}h3{font-size:13pt}table{border-collapse:collapse;width:100%;margin:8pt 0}th,td{border:1px solid #999;padding:4pt 6pt;text-align:left;vertical-align:top;white-space:pre-line}th{background:#eee}pre,code{font-family:Courier,monospace;font-size:9.5pt}pre{background:#f5f5f5;padding:6pt;white-space:pre-wrap}'
     cabeca = f'<title>{_html.escape(titulo)}</title>' if titulo else ''
     return f'<!DOCTYPE html><html><head><meta charset="utf-8"/>{cabeca}<style>{estilo}</style></head><body>{''.join(partes)}</body></html>'
+
+def html_para_editar(texto):
+    partes = []
+    for bloco in analisar_markdown(texto):
+        tipo = bloco[0]
+        if tipo == 'titulo':
+            n = min(max(bloco[1], 1), 6)
+            partes.append(f'<h{n}>{_html_inline(bloco[2]) or '<br>'}</h{n}>')
+        elif tipo == 'paragrafo':
+            partes.append(f'<p>{(_html_inline(bloco[1]) if bloco[1].strip() else '<br>')}</p>')
+        elif tipo in ('lista', 'numerada'):
+            tag = 'ul' if tipo == 'lista' else 'ol'
+            itens = ''.join((f'<li>{_html_inline(i) or '<br>'}</li>' for i in bloco[1]))
+            partes.append(f'<{tag}>{itens}</{tag}>')
+        elif tipo == 'tabela':
+            colunas = max((len(f) for f in bloco[1]))
+            filas = ''.join(('<tr>' + ''.join(('<td><p>' + ((_html_inline(f[c]) if c < len(f) and f[c].strip() else '') or '<br>') + '</p></td>' for c in range(colunas))) + '</tr>' for f in bloco[1]))
+            partes.append(f'<table class="table table-bordered o_table"><tbody>{filas}</tbody></table>')
+        elif tipo == 'codigo':
+            partes.append(f'<pre>{_html.escape(bloco[1])}</pre>')
+        elif tipo == 'hr':
+            partes.append('<hr>')
+    return ''.join(partes) or '<p><br></p>'
+_HTML_FORA_DO_TEXTO = frozenset(('script', 'style', 'template', 'head', 'title', 'meta', 'link', 'img', 'picture', 'video', 'audio', 'source', 'track', 'iframe', 'object', 'embed', 'svg', 'math', 'canvas', 'noscript', 'button', 'input', 'select', 'option', 'textarea'))
+_HTML_TITULOS = {f'h{n}': n for n in range(1, 7)}
+_HTML_BLOCOS = frozenset(('p', 'div', 'ul', 'ol', 'li', 'table', 'thead', 'tbody', 'tfoot', 'tr', 'td', 'th', 'caption', 'pre', 'hr', 'blockquote', 'section', 'article', 'header', 'footer', 'main', 'aside', 'nav', 'figure', 'figcaption', 'address', 'dl', 'dt', 'dd', 'details', 'summary')) | frozenset(_HTML_TITULOS)
+_ESPACOS_HTML_RE = re.compile('[ \\t\\r\\n\\f]+')
+_QUEBRA = ('\n', False, False, False)
+
+def _tag_html(el):
+    return el.tag.lower() if isinstance(el.tag, str) else ''
+
+def _so_quebras_no_fim(saida):
+    for texto, *_estilo in reversed(saida):
+        if texto == '\n':
+            return True
+        if texto.strip():
+            return False
+    return True
+
+def _trechos_do_html(el, estilo=(False, False, False), saida=None, ignorar=()):
+    saida = [] if saida is None else saida
+    negrito, italico, codigo = estilo
+    tag = _tag_html(el)
+    if tag in ('strong', 'b'):
+        negrito = True
+    elif tag in ('em', 'i'):
+        italico = True
+    elif tag in ('code', 'kbd', 'samp', 'tt'):
+        codigo = True
+    meu = (negrito, italico, codigo)
+    if el.text and tag:
+        saida.append((el.text, *meu))
+    for filho in el:
+        ftag = _tag_html(filho)
+        if ftag == 'br':
+            saida.append(_QUEBRA)
+        elif ftag and ftag not in _HTML_FORA_DO_TEXTO and (ftag not in ignorar):
+            bloco = ftag in _HTML_BLOCOS
+            if bloco and (not _so_quebras_no_fim(saida)):
+                saida.append(_QUEBRA)
+            if ftag == 'li':
+                saida.append(('• ', *meu))
+            _trechos_do_html(filho, meu, saida)
+            if bloco and (not _so_quebras_no_fim(saida)):
+                saida.append(_QUEBRA)
+        if filho.tail:
+            saida.append((filho.tail, *meu))
+    return saida
+_PARECIDOS_COM_AS_MARCAS = str.maketrans({'*': '∗', '`': 'ˋ', '_': 'ˍ'})
+
+def _juntar_em_linha(juntos, trocar):
+    partes, visivel = ([], [])
+    for texto, marca in juntos:
+        if marca is None:
+            partes.append('<br>')
+            visivel.append('\n')
+        elif marca and texto.strip(' '):
+            meio = texto.strip(' ')
+            meio = meio.replace('`', 'ˋ') if marca == '`' else meio.replace('*', '∗')
+            antes = texto[:len(texto) - len(texto.lstrip(' '))]
+            depois = texto[len(texto.rstrip(' ')):]
+            partes.append(f'{antes}{marca}{meio}{marca}{depois}')
+            visivel.append(f'{antes}{meio}{depois}')
+        else:
+            if trocar:
+                texto = texto.translate(_PARECIDOS_COM_AS_MARCAS)
+            partes.append(texto)
+            visivel.append(texto)
+    linha = re.sub(' {2,}', ' ', ''.join(partes)).strip(' ')
+    while linha.endswith('<br>'):
+        linha = linha[:-4].rstrip(' ')
+    return (linha, ''.join(visivel))
+
+def _markdown_em_linha(trechos):
+    juntos = []
+    for texto, negrito, italico, codigo in trechos:
+        if texto == '\n':
+            juntos.append(['\n', None])
+            continue
+        marca = '**' if negrito else '*' if italico else '`' if codigo else ''
+        texto = _ESPACOS_HTML_RE.sub(' ', texto)
+        if juntos and juntos[-1][1] == marca:
+            juntos[-1][0] += texto
+        else:
+            juntos.append([texto, marca])
+    linha, visivel = _juntar_em_linha(juntos, trocar=False)
+    if ' '.join(_sem_marcas(linha.replace('<br>', '\n')).split()) != ' '.join(visivel.split()):
+        linha, _visivel = _juntar_em_linha(juntos, trocar=True)
+    return linha
+
+def _parece_estrutura(linha):
+    return bool(_TITULO_RE.match(linha) or _MARCA_RE.match(linha) or _NUMERO_RE.match(linha) or _HR_RE.match(linha) or linha.lstrip().startswith('```'))
+
+def _paragrafo_do_html(trechos):
+    linha = _markdown_em_linha(trechos)
+    if not linha.replace('<br>', '').strip():
+        return '<br>'
+    if _parece_estrutura(linha):
+        linha = '\u200b' + linha
+    return linha
+
+def _itens_do_html(lista, itens):
+    for el in lista:
+        tag = _tag_html(el)
+        if tag in ('ul', 'ol'):
+            _itens_do_html(el, itens)
+        elif tag and tag not in _HTML_FORA_DO_TEXTO:
+            texto = _markdown_em_linha(_trechos_do_html(el, ignorar=('ul', 'ol')))
+            if texto.replace('<br>', '').strip():
+                itens.append(texto)
+            for sub in el:
+                if _tag_html(sub) in ('ul', 'ol'):
+                    _itens_do_html(sub, itens)
+
+def _tabela_do_html(tabela):
+    filas = []
+    for tr in tabela.xpath('./tr | ./thead/tr | ./tbody/tr | ./tfoot/tr'):
+        celulas = [_markdown_em_linha(_trechos_do_html(c)).replace('|', '∣') for c in tr.xpath('./td | ./th')]
+        if celulas:
+            filas.append(celulas)
+    if not filas:
+        return ''
+    colunas = max((len(f) for f in filas))
+    linhas = ['| ' + ' | '.join(f + [''] * (colunas - len(f))) + ' |' for f in filas]
+    linhas.insert(1, '|' + '---|' * colunas)
+    return '\n'.join(linhas)
+
+def _texto_do_pre(pre):
+    for br in pre.iter('br'):
+        br.tail = '\n' + (br.tail or '')
+    return pre.text_content().strip('\n').replace('```', 'ˋˋˋ')
+
+def _blocos_do_html(contentor, saida):
+    soltos = []
+
+    def fechar_soltos():
+        if any((t == '\n' or t.strip() for t, *_estilo in soltos)):
+            saida.append(_paragrafo_do_html(soltos))
+        soltos.clear()
+    if contentor.text:
+        soltos.append((contentor.text, False, False, False))
+    for el in contentor:
+        tag = _tag_html(el)
+        if not tag or tag in _HTML_FORA_DO_TEXTO:
+            pass
+        elif tag == 'br':
+            soltos.append(_QUEBRA)
+        elif tag in _HTML_TITULOS:
+            fechar_soltos()
+            linha = _markdown_em_linha(_trechos_do_html(el))
+            if linha.replace('<br>', '').strip():
+                saida.append('#' * _HTML_TITULOS[tag] + ' ' + linha)
+        elif tag in ('ul', 'ol'):
+            fechar_soltos()
+            itens = []
+            _itens_do_html(el, itens)
+            if itens:
+                saida.append('\n'.join(((f'{n}. ' if tag == 'ol' else '- ') + item for n, item in enumerate(itens, 1))))
+        elif tag == 'table':
+            fechar_soltos()
+            tabela = _tabela_do_html(el)
+            if tabela:
+                saida.append(tabela)
+        elif tag == 'pre':
+            fechar_soltos()
+            saida.append('```\n' + _texto_do_pre(el) + '\n```')
+        elif tag == 'hr':
+            fechar_soltos()
+            saida.append('---')
+        elif tag in _HTML_BLOCOS:
+            fechar_soltos()
+            if any((_tag_html(f) in _HTML_BLOCOS for f in el)):
+                _blocos_do_html(el, saida)
+            else:
+                saida.append(_paragrafo_do_html(_trechos_do_html(el)))
+        else:
+            _trechos_do_html(el, saida=soltos)
+        if el.tail:
+            soltos.append((el.tail, False, False, False))
+    fechar_soltos()
+
+def markdown_do_html(fragmento):
+    if not isinstance(fragmento, str) or not fragmento.strip():
+        return ''
+    try:
+        raiz = _lxml_html.fragment_fromstring(fragmento, create_parent='div')
+    except (etree.ParserError, ValueError):
+        return ''
+    saida = []
+    _blocos_do_html(raiz, saida)
+    return '\n\n'.join(saida)

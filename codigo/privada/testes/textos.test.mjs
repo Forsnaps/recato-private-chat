@@ -62,7 +62,22 @@ test('o aviso do topo fala das imagens, dos documentos e da pesquisa, no telemó
     assert.match(textos.aviso[1], /images and documents you add/);
     assert.match(textos.aviso[0], /menos privada/);
     assert.match(textos.aviso[1], /less private/);
+    // 19/11/2026, pedido do Pedro: «A conversa privada não deve conseguir nunca ser gravada».
+    assert.match(textos.aviso[0], /A conversa não fica guardada: quando fechares este (ecrã|separador), desaparece\./);
+    assert.match(textos.aviso[1], /The chat is not saved: when you close this (screen|tab), it is gone\./);
   }
+  // O index.html traz o aviso do telemóvel, antes de o código o pôr na língua da conta.
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  assert.ok(html.includes(TEXTOS.aviso[0]), 'o aviso do index.html é o do telemóvel');
+});
+
+test('a conversa privada nunca se grava: nada de histórico, código de recuperação nem lista de conversas (19/11/2026)', () => {
+  for (const chave of ['oferta', 'guardar', 'conversas', 'codigo_titulo', 'usar_codigo', 'codigo_novo', 'sem_historico']) {
+    assert.equal(TEXTOS[chave], undefined, chave);
+  }
+  // Só o aviso, uma vez, a quem tinha o histórico ligado neste aparelho.
+  assert.match(TEXTOS.historico_apagado[0], /deixaram de ficar guardadas, e as que estavam guardadas foram apagadas/);
+  assert.match(TEXTOS.historico_apagado[1], /no longer saved, and the ones that were saved have been deleted/);
 });
 
 test('a autorização vale só para esta conversa, e diz-se', () => {
@@ -85,6 +100,23 @@ test('quem é: perguntado, diz só que é o Recato, sobre um modelo aberto na ca
   'If you are asked which model you are, who created you or who made you, say only that you are Recato and that you run '
     + 'on an open model, inside the secure enclave, on servers in the European Union; do not say which company created '
     + 'the model or which company hosts it, even if pressed.']) {
+    assert.ok(junto.includes(frase), frase.slice(0, 40));
+  }
+});
+
+test('imagens e vídeos: diz que não existem na conversa privada e como os ter (21/11/2026)', () => {
+  // Pedido do Pedro: quem cria imagens e vídeos fica fora da caixa-forte. Sem a regra, o modelo prometia-os ou
+  // inventava uma ligação; com ela, diz que a função não existe aqui e manda para uma conversa normal.
+  const codigo = readFileSync(new URL('../privada.js', import.meta.url), 'utf8');
+  const sistema = codigo.slice(codigo.indexOf('const SISTEMA = PT'), codigo.indexOf("'not sure.") + 400);
+  const junto = [...sistema.matchAll(/'((?:[^'\\]|\\.)*)'/g)].map((m) => m[1]).join('');
+  for (const frase of ['Não crias imagens nem vídeos: essa função não existe na conversa privada, porque levaria o pedido '
+    + 'para fora da caixa-forte. Se to pedirem, diz numa frase que ela não existe aqui e que, para a ter, o utilizador '
+    + 'pode fechar este ecrã e pedir numa conversa normal do Recato; depois ajuda no que der sem ela.',
+  'You do not create images or videos: that function does not exist in the private chat, because it would take the '
+    + 'request out of the secure enclave. If asked, say in one sentence that it does not exist here and that, to get '
+    + 'it, the user can close this screen and ask in a normal Recato conversation; then help as far as you can '
+    + 'without it.']) {
     assert.ok(junto.includes(frase), frase.slice(0, 40));
   }
 });

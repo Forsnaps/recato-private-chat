@@ -1,7 +1,15 @@
-body { margin: 0; width: 320px; padding: 16px; background: #030907; color: #dfe9e5; font: 14px/1.45 system-ui, sans-serif; }
-h1 { font-size: 15px; margin: 0 0 10px; }
+:root {
+  --fundo: #0c0c0c;
+  --texto: #d0d0cc;
+  --titulo: #f3f3f0;
+  --destaque: #f3f3f0;
+  --ambar: #f0cf8c;
+}
+body { margin: 0; width: 320px; padding: 16px; background: var(--fundo); color: var(--texto); font: 14px/1.45 system-ui, sans-serif; }
+h1 { font-size: 15px; margin: 0 0 10px; color: var(--titulo); }
 p { margin: 0 0 10px; }
 .estado { font-weight: 600; }
-.estado.conferida { color: #5fb3a1; }
-.estado.por-conferir { color: #e8b04b; }
-a { color: #5fb3a1; }
+.estado.conferida { color: var(--destaque); }
+.estado.por-conferir { color: var(--ambar); }
+a { color: var(--destaque); }
+a:focus-visible { outline: 2px solid var(--destaque); outline-offset: 2px; }

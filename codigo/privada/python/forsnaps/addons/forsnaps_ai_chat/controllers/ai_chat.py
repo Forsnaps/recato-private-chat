@@ -277,7 +277,7 @@ class AiChatController:
         return base64.b64encode(buf.getvalue()).decode('ascii')
 
     @classmethod
-    def _process_attachments(cls, attachments_input, message_record, provider_key):
+    def _process_attachments(cls, attachments_input, message_record, provider_key, partir_videos=True):
         if not attachments_input:
             return ('', [])
         if not isinstance(attachments_input, list):
@@ -342,7 +342,9 @@ class AiChatController:
                 else:
                     text_parts.append(f'- [imagem] {name} ({human_size}) — não foi enviada à IA porque o modelo actual não suporta análise de imagens.')
             elif mime in _VIDEO_MIMES:
-                if supports_vision:
+                if supports_vision and (not partir_videos):
+                    text_parts.append(f'- [vídeo] {name} ({human_size}) — ver em anexo.')
+                elif supports_vision:
                     _report_progress(_etapa(_ETAPA_A_PREPARAR_O_VIDEO))
                     blocos, linha, _ouvido = cls._video_em_imagens(data_bytes, mime, name, human_size, acumulador=getattr(_chamada_local, 'consumo_da_resposta', None))
                     image_blocks.extend(blocos)

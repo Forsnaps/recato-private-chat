@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { aleatorio } from '../cofre.js';
+import { aleatorio } from '../bytes.js';
 import {
   carteiroValido, criarChaveDoNavegador, enderecoDoRecato, linguaDaLigacao, sessaoDaExtensao, sessaoDaLigacao,
 } from '../navegador.js';

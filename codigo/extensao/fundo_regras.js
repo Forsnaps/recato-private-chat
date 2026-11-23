@@ -72,12 +72,14 @@ export async function obterVersoes(api, buscar, url, agora = Date.now()) {
  *  — a conferência procura-os na cópia que o browser guardou. */
 export const ficheirosPublicados = (versoes) => [...new Set(versoes.flatMap((v) => Object.keys(v.web)))].sort();
 
+// O selo no ícone: texto, fundo e cor do texto («Carvão mate», 22/11/2026: branco = conferida, âmbar = por conferir,
+// vermelho = diferente ou erro; texto escuro em todos).
 const NO_ICONE = {
-  conferida: ['✓', '#2f7d6d'],
-  diferente: ['!', '#c0392b'],
-  incompleta: ['?', '#b9770e'],
-  interferencia: ['?', '#b9770e'],
-  erro: ['?', '#b9770e'],
+  conferida: ['✓', '#f3f3f0', '#0c0c0c'],
+  diferente: ['!', '#ff9b8a', '#0c0c0c'],
+  incompleta: ['?', '#f0cf8c', '#0c0c0c'],
+  interferencia: ['?', '#f0cf8c', '#0c0c0c'],
+  erro: ['?', '#ff9b8a', '#0c0c0c'],
 };
 
 /**
@@ -100,9 +102,11 @@ export async function conferirSeparador(api, separadorId, pedido, versoesDe) {
     resultado = { estado: 'interferencia', estranhos: pedido.estranhos };
   }
   resultado.exato = Boolean(exatos);
-  const [texto, cor] = NO_ICONE[resultado.estado];
+  const [texto, cor, corDoTexto] = NO_ICONE[resultado.estado];
   await api.action.setBadgeText({ tabId: separadorId, text: texto });
   await api.action.setBadgeBackgroundColor({ tabId: separadorId, color: cor });
+  // Um Chrome anterior ao 110 não tem esta função: o texto fica branco, como era.
+  if (api.action.setBadgeTextColor) await api.action.setBadgeTextColor({ tabId: separadorId, color: corDoTexto });
   await api.storage.session.set({ [`conferencia:${separadorId}`]: resultado });
   return resultado;
 }

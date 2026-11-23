@@ -6,7 +6,7 @@
 // anexos.test.mjs.
 import fs from 'node:fs';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { loadPyodide } from 'pyodide';
 
@@ -14,7 +14,7 @@ import { pythonDoEcra } from '../../scripts/construir_privada.mjs';
 import { CACHE, PACOTES, rodasPython } from '../../scripts/pacotes_python.mjs';
 import { criarPython } from '../python.js';
 
-export const PYTHON = new URL('../python/', import.meta.url).pathname;
+export const PYTHON = fileURLToPath(new URL('../python/', import.meta.url));
 const MODULOS = ['privada_ficheiros', 'privada_anexos'];
 
 /** {py, chamar(funcao, ...argumentos), python}: o Pyodide pronto, uma função

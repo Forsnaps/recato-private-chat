@@ -1,12 +1,12 @@
 // Testes das imagens da conversa privada (privada/imagens.js): as regras do
 // chat do Recato — janela das 3 últimas mensagens, 8 imagens, 3 MB, as mais
-// recentes primeiro — e o que fica no histórico. Correm com: npm test
+// recentes primeiro. Correm com: npm test
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import {
-  bytesDe, bytesDescodificados, dimensoesReduzidas, reducoes, LADO_MAXIMO, MAX_BYTES_GUARDADOS, MAX_BYTES_POR_PEDIDO, MAX_IMAGENS_POR_PEDIDO,
-  MENSAGENS_COM_IMAGENS, paraGuardar, paraOModelo, vaiTalComoEsta,
+  bytesDe, bytesDescodificados, dimensoesReduzidas, reducoes, LADO_MAXIMO, MAX_BYTES_POR_PEDIDO, MAX_IMAGENS_POR_PEDIDO,
+  MENSAGENS_COM_IMAGENS, paraOModelo, vaiTalComoEsta,
 } from '../imagens.js';
 import { levaImagens, pedidoAoModelo } from '../pesquisa.js';
 
@@ -75,21 +75,6 @@ test('no máximo 8 imagens e 3 MB por pedido, as mais recentes primeiro', () => 
   assert.ok(porBytes.bytesImagens <= MAX_BYTES_POR_PEDIDO);
 });
 
-test('no histórico ficam as imagens mais recentes que cabem; as outras ficam contadas', () => {
-  const grande = (marca) => imagem(1024 * 1024, marca);
-  const mensagens = [eu('1', [grande('B'), grande('C')]), recato('ok'), eu('2', [grande('D')]), eu('3', [grande('E')])];
-  const guardadas = paraGuardar(mensagens);
-  assert.deepEqual(guardadas[3].imagens, [grande('E')]);
-  assert.deepEqual(guardadas[2].imagens, [grande('D')]);
-  assert.equal(guardadas[0].imagens, undefined);
-  assert.equal(guardadas[0].imagensNaoGuardadas, 2);
-  assert.equal(guardadas[0].texto, '1', 'O texto fica sempre.');
-  const total = guardadas.flatMap((m) => m.imagens || []).reduce((n, url) => n + bytesDe(url), 0);
-  assert.ok(total <= MAX_BYTES_GUARDADOS);
-  assert.equal(mensagens[0].imagens.length, 2, 'A conversa aberta não perde nada.');
-  assert.deepEqual(paraGuardar([eu('a'), recato('b')]), [eu('a'), recato('b')]);
-});
-
 test('uma imagem muito detalhada tenta menos qualidade e depois menos píxeis, até caber', () => {
   const tentativas = reducoes(4032, 3024);
   assert.deepEqual(tentativas[0], { largura: 2000, altura: 1500, qualidade: 0.85 }, 'Primeiro, a redução do chat.');
@@ -99,11 +84,3 @@ test('uma imagem muito detalhada tenta menos qualidade e depois menos píxeis, a
   assert.equal(bytesDescodificados(`data:image/jpeg;base64,${'A'.repeat(400)}`), 300);
 });
 
-
-test('paraGuardar aceita um teto mais pequeno (uma conversa com muito texto ou documentos)', () => {
-  const imagem = (n) => `data:image/jpeg;base64,${'A'.repeat(n)}`;
-  const mensagens = [{ papel: 'eu', texto: 'a', imagens: [imagem(100), imagem(200)] }];
-  assert.deepEqual(paraGuardar(mensagens, 250)[0], { papel: 'eu', texto: 'a', imagens: [imagem(200)],
-    imagensNaoGuardadas: 1 });
-  assert.deepEqual(paraGuardar(mensagens, 0)[0], { papel: 'eu', texto: 'a', imagensNaoGuardadas: 2 });
-});
