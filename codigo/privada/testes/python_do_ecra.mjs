@@ -6,7 +6,7 @@
 // anexos.test.mjs.
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 
 import { loadPyodide } from 'pyodide';
 
@@ -25,8 +25,11 @@ export async function pythonDoEcraEmNode() {
   await rodasPython();
   // Como o worker: os do Pyodide pelo nome (da cache já conferida), os outros
   // pelo ficheiro; aqui também os do PDF, que no ecrã só vêm no primeiro PDF.
+  // O ficheiro pelo caminho no disco, com «/», e não por um «file://»: o
+  // Pyodide do Node só lhe tira o «file://», e no Windows ficava «/D:/…» e
+  // numa pasta com espaços «%20» (23/11/2026, como no Recato Code).
   const py = await loadPyodide({ packageCacheDir: CACHE });
-  await py.loadPackage(PACOTES.map((p) => (p.do_pyodide ? p.pacote : pathToFileURL(path.join(CACHE, p.ficheiro)).href)),
+  await py.loadPackage(PACOTES.map((p) => (p.do_pyodide ? p.pacote : path.join(CACHE, p.ficheiro).split(path.sep).join('/'))),
     { messageCallback: () => {} });
   for (const [caminho, texto] of Object.entries(pythonDoEcra())) {
     const destino = `/privada/${caminho}`;
