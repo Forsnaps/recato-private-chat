@@ -59,6 +59,7 @@ import {
 import { criarPlataforma } from './plataforma.js';
 import { criarPython } from './python.js';
 import { criarServidor } from './servidor.js';
+import { teclaDaCaixa } from './teclas.js';
 import { formatar } from './texto.js';
 import { TEXTOS, TEXTOS_DO_BROWSER } from './textos.js';
 
@@ -1023,16 +1024,18 @@ async function arrancar() {
   $('parar').addEventListener('click', pararResposta);
   // Na app, o «Parar» da notificação de quando a app está fechada (TrabalhoPrivadoServico).
   document.addEventListener('privada:parar', pararResposta);
-  // Como no chat do Recato: Ctrl/Cmd+Enter envia; com Shift, a pensar ao
-  // máximo, e a conversa fica no «Máximo».
-  $('texto').addEventListener('keydown', (evento) => {
-    if (evento.key !== 'Enter' || !(evento.ctrlKey || evento.metaKey) || evento.isComposing) return;
-    evento.preventDefault();
-    enviarOTexto({ maximo: evento.shiftKey });
-  });
-  // A dica da pílula diz a tecla, só com teclado (no telemóvel não há).
+  // Como no chat do Recato e no Recato Code (23/11/2026, pedido do Pedro): o
+  // Enter envia e o Shift+Enter muda de linha; o Ctrl/Cmd+Enter também envia
+  // e, com Shift, a pensar ao máximo (a conversa fica no «Máximo»).
   const mac = /Mac|iPhone|iPad/.test(navigator.platform || '');
   const comTeclado = !matchMedia('(pointer: coarse)').matches;
+  $('texto').addEventListener('keydown', (evento) => {
+    const tecla = teclaDaCaixa(evento, { comTeclado });
+    if (!tecla) return;
+    evento.preventDefault();
+    enviarOTexto({ maximo: tecla === 'maximo' });
+  });
+  // A dica da pílula diz a tecla, só com teclado (no telemóvel não há).
   $('nivel').title = comTeclado ? t('nivel_dica').replace('%s', `${mac ? 'Cmd' : 'Ctrl'}+Shift+Enter`)
     : t('nivel_titulo');
   $('nivel').addEventListener('click', () => abrirMenuNivel($('menu-nivel').hidden));

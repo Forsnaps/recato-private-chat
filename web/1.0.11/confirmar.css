@@ -1,0 +1,24 @@
+:root {
+  --fundo: #0c0c0c;
+  --superficie: #111111;
+  --linha: #252525;
+  --texto: #d0d0cc;
+  --titulo: #f3f3f0;
+  --menor: #8b8b87;
+  --destaque: #f3f3f0;
+}
+html { background: var(--fundo); }
+body { margin: 0; color: var(--texto); font: 16px/1.55 system-ui, sans-serif; }
+main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { font-size: 26px; line-height: 1.25; margin: 0 0 16px; color: var(--titulo); }
+h2 { font-size: 18px; margin: 32px 0 8px; color: var(--titulo); }
+p, li { color: var(--texto); }
+a { color: var(--destaque); }
+a:focus-visible { outline: 2px solid var(--destaque); outline-offset: 2px; }
+code, pre { font-family: ui-monospace, monospace; font-size: 13px; }
+pre { background: var(--superficie); border: 1px solid var(--linha); border-radius: 10px; padding: 12px; overflow-x: auto; }
+.tabela { overflow-x: auto; border: 1px solid var(--linha); border-radius: 10px; background: var(--superficie); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--linha); vertical-align: top; }
+td.impressao { font-family: ui-monospace, monospace; word-break: break-all; color: var(--menor); }
+.linguas { text-align: right; font-size: 14px; }
